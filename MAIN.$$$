@@ -1,0 +1,7217 @@
+//					X- Flash Firmware Modification Program
+//                     	      For the Sony Playstation Portable with Firmware version 1.5
+//						     (c) Art 2006
+//
+#include <pspiofilemgr.h>
+#include <pspgu.h>
+#include <psppower.h>
+#include <png.h>
+#include <stdio.h>
+#include <pspwlan.h>
+#include <psputility.h>
+#include <pspaudio.h> 
+#include <pspaudiolib.h>
+#include <xflash_files.h>
+#include <openinga.h>
+#include <openingb.h>
+#include <wrench.h>
+#include <holyshit.h>
+#include <pspkernel.h>
+#include <pspdebug.h>
+#include <pspctrl.h>
+#include <pspdisplay.h>
+#include <stdlib.h>
+#include <string.h>
+#include <credits.h>
+#include <backgrounds.h>
+#include <stars.h>
+
+#include "mikmod.h"
+
+#define true 1
+#define false 0
+
+/* Define the module info section */
+PSP_MODULE_INFO("X-FLASH", 0x1000, 1, 1);
+
+/* Define the main thread's attribute value (optional) */
+PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER | THREAD_ATTR_VFPU);
+
+/* Define printf, just to make typing easier */
+#define printf	pspDebugScreenPrintf
+
+int done = 0;
+extern int _mm_errno;
+extern BOOL _mm_critical;
+extern char *_mm_errmsg[];
+int mikModThreadID = -1;
+
+#define MAX(X, Y) ((X) > (Y) ? (X) : (Y))
+
+int sampls;			//
+int stra = 100;			//
+int strb = 100;			//
+int strc = 100;			//
+int strd = 100;			//
+int stre = 100;			//
+int strf = 100;			//
+int strg = 100;			//
+int strh = 100;			//
+int stri = 100;			//
+int strj = 100;			//
+int strk = 100;			//
+int strl = 100;			//
+int strm = 100;			//
+int strn = 100;			//
+int stro = 100;			//
+int starbb;			//
+int starda = 10;		//
+int stardb = 11;		//
+int stardc = 12;		//
+int stardd = 13;		//
+int starde = 14;		//
+int stardf = 15;		//
+int stardg = 16;		//
+int stardh = 17;		//
+int stardi = 18;		//
+int stardj = 19;		//
+int stardk = 20;		//
+int stardl = 21;		//
+int stardm = 22;		//
+int stardn = 23;		//
+int stardo = 24;		//
+int cr = 0;			//
+int dia = 0xBC;			// diamond character
+int greydir = 0;		//
+int grey = 0x00666666;		//
+int arrow = 0xAF;		//
+int smiley = 0x01;		// smiley character 1
+int bsmiley = 0x02;		// smiley character 2
+int crbuff;			//
+int stbuff;			//
+int mcnt = 0;			//
+int balla = 0;			//
+int ballb = 0;			//
+int ballx = 30;			//
+int bally = 17;			//
+int tballa = 0;			//
+int tballb = 0;			//
+int tballx = 57;		//
+int tbally = 21;		//
+int crly = 0;			//
+int crlx = 11;			//
+int crld = 0;			//
+int crla = 16;			//
+int crlb = 17;			//
+int crlc = 18;			//
+int tripcol;			//
+int test = 0;			//
+int ixt;			// delay counter
+int fails = 0;			// number of verify fails. hopefully stays at zero
+int color = 285887217;		//
+int colorb = 285887217;		//
+int colorc = 0x00666666;	//
+int colord = 0x00FFFFFF;	//
+int disb;			//
+int disq;			//
+int merr = 49;			//
+int errs = 1;			//
+int mgam = 49;			//
+int game = 1;			//
+int gate;			//
+int txsw;			//
+int nuon;			// status indicator for network update
+int wave;			// status indicator for wave effect
+int chkk;			//
+int art = 0;			//
+int menu = 1;			//
+int kos = 1;			//
+int X = 1;			//
+int exist = 0;			//
+int C = 240;			//
+int isplugged = 0;		// Is power cable plugged in? this variable contains the answer.
+int batterypower = 0;		// battery power override
+int mlinea = 11;		// set up initial menu line positions
+int mlineb = 12;		//
+int mlinec = 13;		//
+int mlined = 14;		//
+int mlinee = 15;		//
+int mlinef = 16;		//
+int mlineg = 17;		//
+int mlineh = 18;		//
+int mlinei = 19;		//
+int mlinej = 20;		//
+int mlinek = 21;		//
+int mlinel = 22;		//
+int mlinem = 23;		//
+int mlinet = 0;			// temporary menu buffer
+char namebuffer[50];		//
+unsigned char data[133];	// version checking buffer
+unsigned char datab[133];	// index.dat verify buffer
+int cpa = 8;			// defines the position of characters of interest
+int cpb = 9;			//
+int cpc = 10;			//
+int cpd = 11;			//
+int fdo;			//
+int ksss = 0;			// kill 6.66 option for kos exclusive
+int month = 1;			//
+int verify = 0;			//
+unsigned char systv[94804];	// system_plugin.rco verify buffer
+unsigned char systp[94804];	// system_plugin.rco buffer
+unsigned char syscon[313628];	// sysconf_plugin.rco buffer
+unsigned char vsys[313628];	// sysconf_plugin.rco verify buffer
+unsigned char sysbg[10776];	// system_plugin_bg.rco buffer
+unsigned char vbg[10776];	// system_plugin_bg.rco verify buffer
+unsigned char update[49404];	// update_plugin.rco buffer
+unsigned char vupd[49404];	// update_plugin.rco verify buffer
+//unsigned char topmenu[230856];	// topmenu_plugin.rco buffer
+//unsigned char vtop[230856];	// topmenu_plugin.rco verify buffer
+unsigned char back[10];		// background files buffer
+unsigned char ltn0[10];		// ltn0.pgf font checking buffer
+unsigned char gbram[200704];	// gameboot.pmf buffer
+unsigned char fntram[123896];	// ltn0.pgf buffer
+unsigned char vgbram[200704];	// gameboot.pmf verify buffer
+unsigned char vfntram[123896];	// ltn0.pgf verify buffer
+unsigned char opening[254344];	// opening_plugin.rco buffer
+unsigned char vopening[254344];	// opening_plugin.rco verify buffer
+unsigned char settings[0xB5];	// user settings read from file
+unsigned char coldboot[100880];	// coldboot.vag buffer (user supplied sound file)
+unsigned char janram[6176];	//
+unsigned char vjanram[6176];	//
+unsigned char febram[6176];	//
+unsigned char vfebram[6176];	//
+unsigned char marram[6176];	//
+unsigned char vmarram[6176];	//
+unsigned char aprram[6176];	//
+unsigned char vaprram[6176];	//
+unsigned char mayram[6176];	//
+unsigned char vmayram[6176];	//
+unsigned char junram[6176];	//
+unsigned char vjunram[6176];	//
+unsigned char julram[6176];	//
+unsigned char vjulram[6176];	//
+unsigned char augram[6176];	//
+unsigned char vaugram[6176];	//
+unsigned char sepram[6176];	//
+unsigned char vsepram[6176];	//
+unsigned char octram[6176];	//
+unsigned char voctram[6176];	//
+unsigned char novram[6176];	//
+unsigned char vnovram[6176];	//
+unsigned char decram[6176];	//
+unsigned char vdecram[6176];	//
+unsigned char blkram[6176];	//
+unsigned char vblkram[6176];	//
+unsigned char blankpmf[18];	//
+unsigned char vblankpmf[18];	//
+
+int exit_callback(int arg1, int arg2, void *common);
+int CallbackThread(SceSize args, void *argp); 
+int SetupCallbacks(void);
+
+char write_buffer[128*1024];
+
+void check(const char* zFile);
+void check_samplea(void);
+void check_sampleb(void);
+void check_samplec(void);
+void check_sampled(void);
+void check_samplee(void);
+void check_samplef(void);
+void boot_samples(void);
+void check_music(void);
+void boot_music(void);
+void print_menu(void);
+void print_header(void);
+void print_footer(void);
+void print_blankfooter(void);
+void print_credits(void);
+void print_creditsb(void);
+void crfooter(void);
+void clear_midscreen(void);
+void scroll_up (void);
+void scroll_dn (void);
+void check_pspunit(void);
+void check_nick(void);
+void write_file(const char *readpath, const char *writepath);
+void read_to_ram(void);
+void increment_vers(void);
+void decrement_vers(void);
+void print_message(void);
+void print_regmessage(void);
+void print_regrestore(void);
+void verify_index(void);
+void verify_sysconf(void);
+void read_sysconf(void);
+void en1337(void);
+void de1337(void);
+void read_sysbg(void);
+void read_system(void);
+void verify_system(void);
+void toggle_wave(void);
+void verify_sysbg(void);
+void read_update(void);
+void toggle_update(void);
+void verify_update(void);
+void read_topmenu(void);
+void txtdisabled(void);
+void txtenabled(void);
+void txtgame(void);
+void txtcode(void);
+void txtexec(void);
+void txtgamz(void);
+void txt1337(void);
+void txtfilz(void);
+void txtapps(void);
+void txti505(void);
+void txt64mz(void);
+void verify_topmenu(void);
+void print_boot(void);
+void boot_upd(void);
+void boot_ltn(void);
+void boot_bmp(void);
+void boot_vag(void);
+void increment_game(void);
+void decrement_game(void);
+void increment_error(void);
+void decrement_error(void);
+void read_bmp(void);
+void read_ltn0(void);
+void read_ltn1(void);
+void just_boot(void);
+void org_error(void);
+void mod_error(void);
+void flh_error(void);
+void doh_error(void);
+void gameboottoram(void);
+void fonttoram(void);
+void verify_gameboot(void);
+void verify_font(void);
+void read_font_file(void);
+void read_opening(void);
+void verify_opening(void);
+void enwaveop(void);
+void dewaveop(void);
+void debrandop(void);
+void enbrandop(void);
+void delete_opening_vag(void);
+void wrench_opening(void);
+void shit_opening(void);
+void original_opening(void);
+void actual_delete(void);
+void holy_echo(void);
+void read_settings(void);
+void apply_settings(void);
+void save_settings(void);
+void print_justfooter(void);
+void coldboot_opening(void);
+void coldboot_echo(void);
+void read_coldboot(void);
+void bounce_balls(void);
+void draw_chicken(void);
+void increment_month(void);
+void decrement_month(void);
+void print_optionf(void);
+void jantoram(void);
+void febtoram(void);
+void martoram(void);
+void aprtoram(void);
+void maytoram(void);
+void juntoram(void);
+void jultoram(void);
+void augtoram(void);
+void septoram(void);
+void octtoram(void);
+void novtoram(void);
+void dectoram(void);
+void blktoram(void);
+void verify_jan(void);
+void verify_feb(void);
+void verify_mar(void);
+void verify_apr(void);
+void verify_may(void);
+void verify_jun(void);
+void verify_jul(void);
+void verify_aug(void);
+void verify_sep(void);
+void verify_oct(void);
+void verify_nov(void);
+void verify_dec(void);
+void move_arrow(void);
+void blank_pmf(void);
+void verify_blankpmf(void);
+void print_starline(void);
+void move_starscreen(void);
+void movx_starscreen(void);
+
+/* Exit callback */
+int exit_callback(int arg1, int arg2, void *common)
+{
+	done = 1;
+	sceKernelExitGame();
+	return 0;
+}
+
+/* Callback thread */
+int CallbackThread(SceSize args, void *argp)
+{
+	int cbid;
+
+	cbid = sceKernelCreateCallback("Exit Callback", exit_callback, NULL);
+	sceKernelRegisterExitCallback(cbid);
+	sceKernelSleepThreadCB();
+
+	return 0;
+}
+
+/* Sets up the callback thread and returns its thread id */
+int SetupCallbacks(void)
+{
+	int thid = 0;
+
+  thid = sceKernelCreateThread("update_thread", CallbackThread, 0x11, 0xFA0, 0, 0);
+	if(thid >= 0)
+	{
+		sceKernelStartThread(thid, 0, 0);
+	}
+
+	return thid;
+}
+
+/* Build a path, append a directory slash if requested */
+void build_path(char *output, const char *root, const char *path, int append)
+{
+	while(*root != 0)
+	{
+		*output++ = *root++;
+	}
+
+	if(*(root-1) != '/')
+	{
+		*output++ = '/';
+	}
+
+	while(*path != 0)
+	{
+		*output++ = *path++;
+	}
+	if(append)
+		*output++ = '/';
+
+	*output++ = 0;
+}
+
+
+/* Define a write buffer */
+char write_buffer[128*1024];
+
+void write_file_dump(const char *read_loc, const char *write_loc, const char *name)
+{
+	int fdin;
+	int fdout;
+	char readpath[256];
+	char writepath[256];
+
+	build_path(readpath, read_loc, name, 0);
+	build_path(writepath, write_loc, name, 0);
+
+	fdin = sceIoOpen(readpath, PSP_O_RDONLY, 0777);
+	if(fdin >= 0)
+	{
+		int bytesRead = 1;
+		fdout = sceIoOpen(writepath, PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		if(fdout < 0)
+		{
+		}
+
+		bytesRead = sceIoRead(fdin, write_buffer, sizeof(write_buffer));
+		while((bytesRead > 0) && (fdout >= 0))
+		{
+			sceIoWrite(fdout, write_buffer, bytesRead);
+			bytesRead = sceIoRead(fdin, write_buffer, sizeof(write_buffer));
+		}
+
+		if(fdout >= 0)
+		{
+			sceIoClose(fdout);
+		}
+
+		if(fdin >= 0)
+		{
+			sceIoClose(fdin);
+		}
+	}
+	else
+	{
+	}
+}
+/* Dump a filing system */
+void dump_filesystem(const char *root, const char *write_loc)
+{
+	int dfd;
+	char next_root[256];
+	char next_write[256];
+
+	sceIoMkdir(write_loc, 0777);
+
+	dfd = sceIoDopen(root);
+	if(dfd > 0)
+	{
+		SceIoDirent dir;
+
+		while(sceIoDread(dfd, &dir) > 0)
+		{
+			if(dir.d_stat.st_attr & FIO_SO_IFDIR)
+			{
+				if(dir.d_name[0] != '.')
+				{
+					build_path(next_write, write_loc, dir.d_name, 0);
+					build_path(next_root, root, dir.d_name, 1);
+					dump_filesystem(next_root, next_write);
+				}
+			}
+			else
+			{
+				write_file_dump(root, write_loc, dir.d_name);
+			}
+		}
+		sceIoDclose(dfd);
+	}
+}
+
+void my_error_handler(void)
+{
+	printf(" Mikmod Library Error ");
+	return;
+}
+static int AudioChannelThread(int args, void *argp)
+{
+  while (!done)
+  {
+    MikMod_Update();
+    // We have to sleep here to allow other threads a chance to process.
+    // with no sleep this thread will take over when the output is disabled via MikMod_DisableOutput()
+    sceKernelDelayThread(1);
+  }
+  return (0);
+}
+
+extern UWORD md_mode;
+extern UBYTE md_reverb;
+extern UBYTE md_pansep;
+
+int main(void)
+{
+
+	MODULE *mf = NULL; // for mod
+	SAMPLE *sf = NULL; // for wav
+	SAMPLE *sy = NULL; // for wav
+	SAMPLE *cr = NULL; // for wav
+	SAMPLE *ci = NULL; // for wav
+	SAMPLE *ch = NULL; // for wav
+	SAMPLE *qb = NULL; // for wav
+	int voice = 0; 	   // for wav
+	int pan = 127;
+	int vol = 127;
+	int maxchan = 128;
+	pspDebugScreenInit();
+	SetupCallbacks();
+  
+	MikMod_RegisterErrorHandler(my_error_handler);
+  /* register all the drivers */
+  MikMod_RegisterAllDrivers();
+  /* register all the module loaders */
+  MikMod_RegisterAllLoaders();
+
+    /* initialize the library */
+	md_mode = DMODE_16BITS|DMODE_STEREO|DMODE_SOFT_SNDFX|DMODE_SOFT_MUSIC; 
+	md_reverb = 0;
+	md_pansep = 128;
+  if (MikMod_Init(""))
+  {
+    printf(" Mikmod Library Error ");
+    sceKernelExitGame();
+    return 0;
+  }
+  
+  MikMod_SetNumVoices(-1, 8);
+	/* get ready to play */
+
+	sf = Sample_Load("./xflash/Xflash/sndx.XF");
+	sy = Sample_Load("./xflash/Xflash/sndy.XF");
+	cr = Sample_Load("./xflash/Xflash/sndcr.XF");
+	ci = Sample_Load("./xflash/Xflash/sndci.XF");
+	ch = Sample_Load("./xflash/Xflash/sndch.XF"); // chicken sound
+	qb = Sample_Load("./xflash/Xflash/sndfb.XF");
+
+  MikMod_EnableOutput();
+
+  if ((mikModThreadID = sceKernelCreateThread("MikMod" ,(void*)&AudioChannelThread,0x12,0x10000,0,NULL)) > 0)
+  {
+    sceKernelStartThread(mikModThreadID, 0 , NULL);
+  }
+  else
+  {
+    printf("Mikmod Library Error\n");
+  }
+				Voice_SetPanning(voice, pan);
+
+			// Main X-Flash Program Starts Here
+
+	int i = 0; SceCtrlData pad;
+
+	sceCtrlSetSamplingCycle(0);
+	sceCtrlSetSamplingMode(PSP_CTRL_MODE_DIGITAL);
+
+	sceIoUnassign("flash0:"); 
+	sceIoAssign("flash0:", "lflash0:0,0", "flashfat0:", 0, NULL, 0);
+
+
+	sceIoUnassign("flash1:"); 
+	sceIoAssign("flash1:", "lflash1:0,1", "flashfat1:", 0, NULL, 0);
+
+	while (1) {
+
+	pspDebugScreenInit();
+	pspDebugScreenSetTextColor(0x000A0AEE);
+	pspDebugScreenSetBackColor(0x00000000);
+
+	// English Disclaimer
+	pspDebugScreenSetXY(0, 4);
+	printf("                             DISCLAIMER:\n\n");
+	pspDebugScreenSetTextColor(0x00EFDDCA);
+	printf("           This software modifies flash memory of the PSP.\n");
+	printf("           As the end user, you accept any risk associated\n");
+	printf("               with the use or misuse of this software.\n");
+	printf("       This software is provided without warranty of any kind.\n\n");
+
+	printf("          Any software that performs modification of flash\n");
+	printf("          files of the PSP has the potential to render the\n");
+	printf("              subject PSP unit permanently inoperative.\n\n");
+
+	printf("           X-Flash is suitable for PSP firmware 1.50 only.\n");
+	printf("\n\n");
+
+	//German Disclaimer
+	pspDebugScreenSetTextColor(0x000A0AEE);
+	printf("                       EINVERSTANDNISERKLARUNG: \n\n");
+	pspDebugScreenSetTextColor(0x00EFDDCA);
+	printf("            Dieses Programm schreibt Dateien in den Flash\n");
+	printf("      Speicher deiner PSP, es besteht dadurch ein hohes Risiko,\n");
+	printf("              dass die PSP durch eine falsche Datei o.Ä. \n");
+	printf("                        unbrauchbar gemacht wird.  \n\n\n\n\n\n");
+
+	pspDebugScreenSetTextColor(0x000A0AEE);
+	printf("                  PRESS 'X' TO AGREE or 'O' TO EXIT");
+
+
+
+	while (1) {
+		sceCtrlReadBufferPositive(&pad, 1);
+
+		if (pad.Buttons & PSP_CTRL_CROSS) {
+				voice = Sample_Play(cr,0,0);
+				voice = Sample_Play(qb,0,0);
+		                	sceDisplayWaitVblankStart();
+
+	pspDebugScreenInit();
+	pspDebugScreenSetBackColor(0x00FFFFFF); //white
+	pspDebugScreenSetTextColor(0x00000000);
+
+					break;
+				}
+
+		if (pad.Buttons & PSP_CTRL_CIRCLE) {
+	pspDebugScreenInit();
+	pspDebugScreenSetBackColor(0x00000000); //black
+	//pspDebugScreenSetTextColor(0x00000000);
+
+	pspDebugScreenSetTextColor(0x00008D8F);
+	draw_chicken();
+	voice = Sample_Play(ch,0,0);
+	for(i=0; i<120; i++) {
+	sceDisplayWaitVblankStart();
+	}
+				sceKernelExitGame();
+				return 0;
+				}
+	}
+
+	pspDebugScreenInit();
+	pspDebugScreenSetTextColor(0x00EFDDCA);
+	pspDebugScreenSetBackColor(0x00000000);
+	while (1) {
+		isplugged = scePowerIsPowerOnline();
+		if (isplugged == 1) {
+		sceDisplayWaitVblankStart();
+		break;
+		}
+		if (batterypower == 1) {
+		sceDisplayWaitVblankStart();
+		break;
+		}
+	pspDebugScreenInit();
+	pspDebugScreenSetBackColor(0x00000000);
+	pspDebugScreenSetTextColor(0x00EFDDCA);
+	pspDebugScreenSetXY(0, 16);
+	printf("                PLEASE INSERT POWER CABLE TO CONTINUE ");
+	sceDisplayWaitVblankStart();
+
+		sceCtrlReadBufferPositive(&pad, 1);
+
+		if (pad.Buttons & PSP_CTRL_RIGHT) {
+			        for(i=0; i<999; i++) {
+		isplugged = scePowerIsPowerOnline();
+		if (isplugged == 1) {
+		sceDisplayWaitVblankStart();
+		break;
+		}
+		                sceDisplayWaitVblankStart();
+				}
+	pspDebugScreenSetXY(0, 16);
+	printf("           PRESS JOYPAD LEFT TO CONTINUE ON BATTERY POWER ");
+			        for(i=0; i<4; i++) {
+		isplugged = scePowerIsPowerOnline();
+		if (isplugged == 1) {
+		sceDisplayWaitVblankStart();
+		break;
+		}
+		                sceDisplayWaitVblankStart();
+				}
+
+		while (1) {
+		isplugged = scePowerIsPowerOnline();
+		if (isplugged == 1) {
+		sceDisplayWaitVblankStart();
+		break;
+		}
+		sceCtrlReadBufferPositive(&pad, 1);
+
+		if (pad.Buttons & PSP_CTRL_LEFT) {
+	pspDebugScreenSetXY(0, 16);
+	printf("          CHECK BATTERY POWER IS GOOD BEFORE USING X-FLASH ");
+
+		                sceDisplayWaitVblankStart();
+				batterypower = 1;
+				break;
+				}
+		}
+			        for(i=0; i<90; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+		}
+	}
+
+	pspDebugScreenInit();
+	for(i=0; i<20; i++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	pspDebugScreenSetTextColor(0x00EFDDCA);
+	pspDebugScreenSetBackColor(0x00000000);
+	pspDebugScreenSetXY(6, 6);
+	read_to_ram();
+
+	pspDebugScreenSetXY(0, 17);
+	printf("                    PSP UNIT FIRMWARE VERSION ");
+	printf("%c",data[cpa]);
+	printf("%c",data[cpb]);
+	printf("%c",data[cpc]);
+	printf("%c",data[cpd]);
+	printf("\n");
+
+	if (data[cpa] != 49) {
+	print_boot();
+	sceKernelExitGame();
+	return 0;
+	}
+	if (data[cpc] != 53) {
+	print_boot();
+	sceKernelExitGame();
+	return 0;
+	}
+	if (data[cpd] != 48) {
+	print_boot();
+	sceKernelExitGame();
+	return 0;
+	}
+
+	settings[0x64] = 0x35; // set a default colour in case file is missing
+
+	data[cpa] = 57; // set menu default version tricker value 9.99
+	data[cpc] = 57;
+	data[cpd] = 57;
+
+	for(i=0; i<90; i++) {
+	sceDisplayWaitVblankStart();
+	}
+	pspDebugScreenSetXY(0, 17);
+	printf("                                                   ");
+	read_settings(); //read user settings from file
+	apply_settings(); //apply settings
+
+	print_header();
+	print_justfooter();
+	for(i=0; i<6; i++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	pspDebugScreenSetTextColor(0x00EFDDCA);
+	pspDebugScreenSetBackColor(0x00000000);
+
+	pspDebugScreenSetXY(21, 28);
+	printf("CHECKING FW: update_plugin.rco ");
+	for(i=0; i<8; i++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	read_update(); //check for previously wrecked update_plugin.rco file
+	gate = 1;
+	if (update[1008] == 0xFF) {
+	gate = 0;
+	}
+	if (gate == 0) {
+	boot_upd();
+	sceKernelExitGame();
+	return 0;
+	}
+
+	pspDebugScreenSetXY(21, 28);
+	printf("CHECKING MS: ltn0.pgf           ");
+	for(i=0; i<8; i++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	read_ltn0(); //check for invalid font
+	if (disq == 1) {
+	boot_ltn();
+	sceKernelExitGame();
+	return 0;
+	}
+
+	pspDebugScreenSetXY(21, 28);
+	printf("CHECKING MS: background.bmp     ");
+	for(i=0; i<8; i++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	read_bmp(); //check bmp files
+	if (disb == 1) {
+	boot_bmp();
+	sceKernelExitGame();
+	return 0;
+	}
+
+	pspDebugScreenSetXY(21, 28);
+	printf("CHECKING MS: Coldboot.vag       ");
+	for(i=0; i<8; i++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	read_coldboot();
+	if (coldboot[0] != 0x56) {  //Check for 'V' of "VAG file"
+	boot_vag();
+	sceKernelExitGame();
+	return 0;
+	}
+	if (coldboot[0x21] != 0x6F) {  //Check for 'o' of "coldboot" in file header
+	boot_vag();
+	sceKernelExitGame();
+	return 0;
+	}
+	if (coldboot[0x22] != 0x6C) {  //Check for 'l' of "coldboot" in file header
+	boot_vag();
+	sceKernelExitGame();
+	return 0;
+	}
+	if (coldboot[0x27] != 0x74) {  //Check for 't' of "coldboot" in file header
+	boot_vag();
+	sceKernelExitGame();
+	return 0;
+	}
+
+	pspDebugScreenSetXY(21, 28);
+	printf("CHECKING MS: sndcx.XF          ");
+	for(i=0; i<8; i++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	check_music();
+	if (gbram[0x23] != 0x58) {  //  "X"  <= Check for missing or altered music file
+	boot_music();
+	sceKernelExitGame();
+	return 0;
+	}
+	if (gbram[0x22] != 0x41) {  //  "A"
+	boot_music();
+	sceKernelExitGame();
+	return 0;
+	}
+	if (gbram[0x11] != 0x46) {  //  "F" low Motion
+	boot_music();
+	sceKernelExitGame();
+	return 0;
+	}
+	if (gbram[0x21] != 0x52) {  //  "R"
+	boot_music();
+	sceKernelExitGame();
+	return 0;
+	}
+	if (gbram[0x20] != 0x44) {  //  "D"
+	boot_music();
+	sceKernelExitGame();
+	return 0;
+	}
+
+	pspDebugScreenSetXY(21, 28);
+	printf("CHECKING MS: sndx.XF         ");
+	for(i=0; i<8; i++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	check_samplea();
+	if (gbram[0x130] != 0x72) {  //  "r"
+	boot_samples();
+	sceKernelExitGame();
+	return 0;
+	}
+	if (gbram[0x131] != 0x73) {  //  "s"
+	boot_samples();
+	sceKernelExitGame();
+	return 0;
+	}
+
+	pspDebugScreenSetXY(21, 28);
+	printf("CHECKING MS: sndy.XF ");
+	for(i=0; i<8; i++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	check_sampleb();
+	if (gbram[0x131] != 0x64) {  //  "d"
+	boot_samples();
+	sceKernelExitGame();
+	return 0;
+	}
+	if (gbram[0x130] != 0x82) {  //  "."
+	boot_samples();
+	sceKernelExitGame();
+	return 0;
+	}
+
+	pspDebugScreenSetXY(21, 28);
+	printf("CHECKING MS: sndcr.XF ");
+	for(i=0; i<8; i++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	check_samplec();
+	if (gbram[0x130] != 0x78) {  //  "x"
+	boot_samples();
+	sceKernelExitGame();
+	return 0;
+	}
+	if (gbram[0x131] != 0x9D) {  //  "."
+	boot_samples();
+	sceKernelExitGame();
+	return 0;
+	}
+
+	pspDebugScreenSetXY(21, 28);
+	printf("CHECKING MS: sndfb.XF ");
+	for(i=0; i<8; i++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	check_sampled();
+	if (gbram[0x131] != 0x82) {  //  "."
+	boot_samples();
+	sceKernelExitGame();
+	return 0;
+	}
+	if (gbram[0x130] != 0x7E) {  //  "~"
+	boot_samples();
+	sceKernelExitGame();
+	return 0;
+	}
+
+	pspDebugScreenSetXY(21, 28);
+	printf("CHECKING MS: sndci.XF ");
+	for(i=0; i<8; i++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	check_samplee();
+	if (gbram[0x130] != 0x8B) {  //  "."
+	boot_samples();
+	sceKernelExitGame();
+	return 0;
+	}
+	if (gbram[0x131] != 0xAC) {  //  "."
+	boot_samples();
+	sceKernelExitGame();
+	return 0;
+	}
+
+	pspDebugScreenSetXY(21, 28);
+	printf("CHECKING MS: sndch.XF ");
+	for(i=0; i<8; i++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	check_samplef();
+	if (gbram[0x130] != 0x82) {  //  "."
+	boot_samples();
+	sceKernelExitGame();
+	return 0;
+	}
+	if (gbram[0x131] != 0x7D) {  //  "}"
+	boot_samples();
+	sceKernelExitGame();
+	return 0;
+	}
+	for(i=0; i<8; i++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	pspDebugScreenSetXY(16, 28);
+	printf("                                  ");
+	for(i=0; i<10; i++) {
+	sceDisplayWaitVblankStart();
+	}
+	pspDebugScreenSetTextColor(0x00EFDDCA);
+	pspDebugScreenSetBackColor(0x00000000);
+
+	print_menu();
+
+	while (1) {
+
+	if (fails > 2) {	// exit program for too many verify fails
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("  MULTIPLE VERIFY FAILURES ");
+	for(i=0; i<200; i++) {
+	sceDisplayWaitVblankStart();
+	}
+	pspDebugScreenSetXY(18, 28);
+	printf("         PROGRAM EXIT      ");
+	for(i=0; i<110; i++) {
+	sceDisplayWaitVblankStart();
+	}
+	sceKernelExitGame();
+	return 0;
+	}
+
+	sceCtrlSetSamplingMode(1); 
+	sceCtrlReadBufferPositive(&pad, 1);
+
+	if (test == 0) {
+
+if(pad.Lx > 235) {
+if (menu == 9) {
+
+vol = 35;
+Voice_SetVolume(voice, vol);
+				voice = Sample_Play(sy,0,0);
+vol = 127;
+Voice_SetVolume(voice, vol);
+
+		increment_vers();
+		print_menu();
+goto fast;
+		}
+
+	}
+
+if(pad.Lx < 20) {
+if (menu == 9) {
+
+vol = 35;
+Voice_SetVolume(voice, vol);
+				voice = Sample_Play(sy,0,0);
+vol = 127;
+Voice_SetVolume(voice, vol);
+
+		decrement_vers();
+		print_menu();
+goto fast;
+		}
+
+	}
+
+   if(pad.Ly < 20) {
+grey = 0x00555555;
+				voice = Sample_Play(sf,0,0);
+			if (menu > 0) {
+				menu--;
+			        for(i=0; i<9; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+          		}
+			if (menu == 0) {
+			menu = 13;
+			}
+		scroll_dn();
+		}
+
+   if(pad.Ly > 235) {
+grey = 0x00555555;
+
+				voice = Sample_Play(sf,0,0);
+			if (menu < 14) {
+				menu++;
+			        for(i=0; i<9; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+			}
+			if (menu == 14) {
+			menu = 1;
+			}
+		scroll_up();
+		}
+
+   if(pad.Lx < 30) {
+grey = 0x00555555;
+			if (menu == 13) {
+
+				if (art == 0) {
+				voice = Sample_Play(sy,0,0);
+		                sceDisplayWaitVblankStart();
+
+				settings[0x64]--;
+				if (settings[0x64] == 0x30) {
+				settings[0x64] = 0x39;
+				}
+
+				apply_settings();
+				print_blankfooter();
+
+				pspDebugScreenSetTextColor(colord);
+				pspDebugScreenSetXY(18, 28);
+
+		                sceDisplayWaitVblankStart();
+			        for(i=0; i<9; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+
+				}
+			}
+
+			if (menu == 9) {
+
+				voice = Sample_Play(sy,0,0);
+		decrement_vers();
+		print_menu();
+			        for(i=0; i<9; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+			}
+
+			if (menu == 7) {
+
+				voice = Sample_Play(sy,0,0);
+		decrement_game();
+		print_menu();
+			        for(i=0; i<9; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+			}
+
+
+			if (menu == 2) {
+
+				voice = Sample_Play(sy,0,0);
+		decrement_error();
+		print_menu();
+			        for(i=0; i<9; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+			}
+
+			if (menu == 5) {
+
+				voice = Sample_Play(sy,0,0);
+		decrement_month();
+		print_menu();
+			        for(i=0; i<9; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+			}
+
+		}
+
+   if(pad.Lx > 225) {
+grey = 0x00555555;
+			if (menu == 13) {
+
+				if (art == 0) {
+				voice = Sample_Play(sy,0,0);
+		                sceDisplayWaitVblankStart();
+
+				settings[0x64]++;
+				if (settings[0x64] == 0x3A) {
+				settings[0x64] = 0x31;
+				}
+
+				apply_settings();
+				print_blankfooter();
+
+				pspDebugScreenSetTextColor(colord);
+				pspDebugScreenSetXY(18, 28);
+
+		                sceDisplayWaitVblankStart();
+			        for(i=0; i<9; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+
+				}
+			}
+
+			if (menu == 7) {
+
+				voice = Sample_Play(sy,0,0);
+		increment_game();
+		print_menu();
+			        for(i=0; i<9; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+			}
+
+			if (menu == 9) {
+
+				voice = Sample_Play(sy,0,0);
+		increment_vers();
+		print_menu();
+			        for(i=0; i<9; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+			}
+
+			if (menu == 2) {
+
+				voice = Sample_Play(sy,0,0);
+		increment_error();
+		print_menu();
+			        for(i=0; i<9; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+			}
+
+			if (menu == 5) {
+
+				voice = Sample_Play(sy,0,0);
+		increment_month();
+		print_menu();
+			        for(i=0; i<9; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+			}
+
+		}
+
+		}
+fast:
+		sceCtrlReadBufferPositive(&pad, 1);
+
+if (test == 0) {
+
+		if (pad.Buttons & PSP_CTRL_UP) {
+grey = 0x00555555;
+				voice = Sample_Play(sf,0,0);
+			if (menu > 0) {
+				menu--;
+			        for(i=0; i<9; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+          		}
+			if (menu == 0) {
+			menu = 13;
+			}
+		scroll_dn();
+		}
+
+
+		if (pad.Buttons & PSP_CTRL_DOWN) {
+grey = 0x00555555;
+				voice = Sample_Play(sf,0,0);
+			if (menu < 14) {
+				menu++;
+			        for(i=0; i<9; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+			}
+			if (menu == 14) {
+			menu = 1;
+			}
+		scroll_up();
+		}
+
+		if(pad.Buttons & PSP_CTRL_RTRIGGER) {
+grey = 0x00555555;
+			if (menu == 9) {
+vol = 35;
+Voice_SetVolume(voice, vol);
+				voice = Sample_Play(sy,0,0);
+vol = 127;
+Voice_SetVolume(voice, vol);
+
+		increment_vers();
+		print_menu();
+		}
+		}
+
+
+		if(pad.Buttons & PSP_CTRL_LTRIGGER) {
+grey = 0x00555555;
+			if (menu == 9) {
+vol = 35;
+Voice_SetVolume(voice, vol);
+				voice = Sample_Play(sy,0,0);
+vol = 127;
+Voice_SetVolume(voice, vol);
+
+		decrement_vers();
+		print_menu();
+		}
+		}
+
+		if (pad.Buttons & PSP_CTRL_LEFT) {
+grey = 0x00555555;
+			if (menu == 13) {
+
+				if (art == 0) {
+				voice = Sample_Play(sy,0,0);
+		                sceDisplayWaitVblankStart();
+
+				settings[0x64]--;
+				if (settings[0x64] == 0x30) {
+				settings[0x64] = 0x39;
+				}
+
+				apply_settings();
+				print_blankfooter();
+
+				pspDebugScreenSetTextColor(colord);
+				pspDebugScreenSetXY(18, 28);
+
+		                sceDisplayWaitVblankStart();
+			        for(i=0; i<9; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+
+				}
+			}
+
+			if (menu == 9) {
+
+				voice = Sample_Play(sy,0,0);
+		decrement_vers();
+		print_menu();
+			        for(i=0; i<9; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+			}
+
+			if (menu == 7) {
+
+				voice = Sample_Play(sy,0,0);
+		decrement_game();
+		print_menu();
+			        for(i=0; i<9; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+			}
+
+
+			if (menu == 2) {
+
+				voice = Sample_Play(sy,0,0);
+		decrement_error();
+		print_menu();
+			        for(i=0; i<9; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+			}
+
+			if (menu == 5) {
+
+				voice = Sample_Play(sy,0,0);
+		decrement_month();
+		print_menu();
+			        for(i=0; i<9; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+			}
+
+		}
+
+
+		if (pad.Buttons & PSP_CTRL_RIGHT) {
+grey = 0x00555555;
+			if (menu == 13) {
+
+				if (art == 0) {
+				voice = Sample_Play(sy,0,0);
+		                sceDisplayWaitVblankStart();
+
+				settings[0x64]++;
+				if (settings[0x64] == 0x3A) {
+				settings[0x64] = 0x31;
+				}
+
+				apply_settings();
+				print_blankfooter();
+
+				pspDebugScreenSetTextColor(colord);
+				pspDebugScreenSetXY(18, 28);
+
+		                sceDisplayWaitVblankStart();
+			        for(i=0; i<9; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+
+				}
+			}
+
+			if (menu == 7) {
+
+				voice = Sample_Play(sy,0,0);
+		increment_game();
+		print_menu();
+			        for(i=0; i<9; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+			}
+
+			if (menu == 9) {
+
+				voice = Sample_Play(sy,0,0);
+		increment_vers();
+		print_menu();
+			        for(i=0; i<9; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+			}
+
+			if (menu == 2) {
+
+				voice = Sample_Play(sy,0,0);
+		increment_error();
+		print_menu();
+			        for(i=0; i<9; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+			}
+
+			if (menu == 5) {
+
+				voice = Sample_Play(sy,0,0);
+		increment_month();
+		print_menu();
+			        for(i=0; i<9; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+			}
+		}
+		}
+
+		if (pad.Buttons & PSP_CTRL_SQUARE) {
+grey = 0x00555555;
+				voice = Sample_Play(cr,0,0);
+		clear_midscreen();
+			        for(i=0; i<40; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+
+
+ mf = Player_Load("./xflash/Xflash/sndcx.XF", maxchan, 0);
+        if (NULL != mf)
+        {
+          mf->wrap = 1;
+				  Player_Start(mf);
+        }
+
+
+		print_credits();
+
+
+		while (1) {
+				int qi;
+				print_credits();
+			        for(qi=0; qi<3; qi++) {
+		    	   	sceDisplayWaitVblankStart();
+				}
+
+				print_creditsb();
+			        for(qi=0; qi<2; qi++) {
+		    	   	sceDisplayWaitVblankStart();
+				}
+
+				print_creditsb();
+			        for(qi=0; qi<2; qi++) {
+		    	   	sceDisplayWaitVblankStart();
+				}
+
+		sceCtrlReadBufferPositive(&pad, 1);
+
+		if (pad.Buttons & PSP_CTRL_SQUARE) {
+
+        if (NULL != mf)
+        {
+				  Player_Stop();
+				  Player_Free(mf); // To stop the song for real, it needs to be freed. I know, weird...
+          mf = NULL;
+	}
+
+grey = 0x00555555;
+				if (test == 1) {
+				voice = Sample_Play(ch,0,0);
+				}
+				else {
+				voice = Sample_Play(ci,0,0);
+				}
+		                sceDisplayWaitVblankStart();
+				break;
+				}
+
+		if (pad.Buttons & PSP_CTRL_TRIANGLE) {
+				voice = Sample_Play(cr,0,0);
+		                sceDisplayWaitVblankStart();
+				check_nick();
+				clear_midscreen();
+				pspDebugScreenSetXY(0, 17);
+				printf("            Thanx to ");
+				printf(namebuffer);
+				printf(" for trying out this program! :)");
+			        for(i=0; i<90; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+				}
+
+		if (pad.Buttons & PSP_CTRL_CROSS) {
+
+	if (data[cpa] == 53) {   //check for version 5.69 unlock
+	if (data[cpd] == 57) {
+	if (data[cpc] == 54) {
+	if (menu == 2) {
+
+	if (test == 0) {
+				voice = Sample_Play(ch,0,0);
+	test = 1;	// set test mode status
+
+	menu = 2;	// lock to test option
+	errs = 8;
+	merr = 56;
+
+	color = 0x00008D8F; //test mode theme
+	colorb = 0x00008D8F;
+	colorc = 0x00222222;
+	colord = 0x00008D8F;
+	print_header();
+	print_justfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 27);
+	printf("          TEST MODE ON ");
+	pspDebugScreenSetXY(18, 29);
+	printf("     CHICKEN THEME ACTIVATED   ");
+	draw_chicken();
+
+			        for(i=0; i<150; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+
+	}
+	else {
+				voice = Sample_Play(ci,0,0);
+	test = 0;	//reset test mode status
+	apply_settings();
+	print_header();
+	print_justfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 27);
+	printf("          TEST MODE OFF ");
+	pspDebugScreenSetXY(18, 29);
+	printf("    CHICKEN THEME DEACTIVATED  ");
+	clear_midscreen();
+			        for(i=0; i<90; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+	}
+	}
+	}
+	}
+	}
+
+			        for(i=0; i<9; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+		}
+
+
+		}
+
+		clear_midscreen();
+			        for(i=0; i<40; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+		print_menu();
+		}
+
+
+	if (menu != X) {
+		print_menu();
+		X = menu;
+	}
+
+		if (pad.Buttons & PSP_CTRL_CROSS) {
+grey = 0x00555555;
+			if (menu == 1) {
+				voice = Sample_Play(cr,0,0);
+			read_opening();
+			debrandop();
+			verify_opening();
+	voice = Sample_Play(qb,0,0);
+	print_message();
+
+			}
+			if (menu == 2) {
+				voice = Sample_Play(cr,0,0);
+			if (errs == 1) {
+			read_system();
+			mod_error();
+			verify_system();
+			}
+			if (errs == 2) {
+			read_system();
+			flh_error();
+			verify_system();
+			}
+			if (errs == 3) {
+			read_system();
+			org_error();
+			verify_system();
+			}
+			if (errs == 4) {
+			read_system();
+			doh_error();
+			verify_system();
+			}
+			if (errs == 5) {
+			read_opening();
+			delete_opening_vag();
+			coldboot_echo();
+			verify_opening();
+			}
+			if (errs == 6) {
+			read_opening();
+			delete_opening_vag();
+			wrench_opening();
+			verify_opening();
+			}
+			if (errs == 7) {
+			read_opening();
+			delete_opening_vag();
+			shit_opening();
+			verify_opening();
+			}
+			if (errs == 8) {
+			read_opening();
+			delete_opening_vag();
+			coldboot_opening();
+			verify_opening();
+			}
+			if (errs == 9) {
+			read_opening();
+			delete_opening_vag();
+			actual_delete();
+			verify_opening();
+			}
+	voice = Sample_Play(qb,0,0);
+	print_message();
+			}
+
+			if (menu == 3) {
+				voice = Sample_Play(cr,0,0);
+			
+			read_update();
+			toggle_update();
+			verify_update();
+
+			read_topmenu();
+			if (txsw ==1) {
+			txtdisabled();
+			}
+			else {
+			txtenabled();
+			}
+			verify_topmenu();
+	voice = Sample_Play(qb,0,0);
+	print_message();
+			}
+			if (menu == 4) {
+				voice = Sample_Play(cr,0,0);
+			read_sysbg();
+			toggle_wave();
+			verify_sysbg();
+
+			read_opening();
+			if (wave == 1) {
+			dewaveop();
+			}
+			else {
+			enwaveop();
+			}
+			verify_opening();
+	voice = Sample_Play(qb,0,0);
+	print_message();
+			}
+			if (menu == 5) {
+				voice = Sample_Play(cr,0,0);
+if (month == 1) {
+				write_file("./xflash/Modified/background.bmp","flash0:/vsh/resource/01.bmp");
+}
+if (month == 2) {
+				write_file("./xflash/Modified/background.bmp","flash0:/vsh/resource/02.bmp");
+}
+if (month == 3) {
+				write_file("./xflash/Modified/background.bmp","flash0:/vsh/resource/03.bmp");
+}
+if (month == 4) {
+				write_file("./xflash/Modified/background.bmp","flash0:/vsh/resource/04.bmp");
+}
+if (month == 5) {
+				write_file("./xflash/Modified/background.bmp","flash0:/vsh/resource/05.bmp");
+}
+if (month == 6) {
+				write_file("./xflash/Modified/background.bmp","flash0:/vsh/resource/06.bmp");
+}
+if (month == 7) {
+				write_file("./xflash/Modified/background.bmp","flash0:/vsh/resource/07.bmp");
+}
+if (month == 8) {
+				write_file("./xflash/Modified/background.bmp","flash0:/vsh/resource/08.bmp");
+}
+if (month == 9) {
+				write_file("./xflash/Modified/background.bmp","flash0:/vsh/resource/09.bmp");
+}
+if (month == 10) {
+				write_file("./xflash/Modified/background.bmp","flash0:/vsh/resource/10.bmp");
+}
+if (month == 11) {
+				write_file("./xflash/Modified/background.bmp","flash0:/vsh/resource/11.bmp");
+}
+if (month == 12) {
+				write_file("./xflash/Modified/background.bmp","flash0:/vsh/resource/12.bmp");
+}
+if (month == 13) {
+				write_file("./xflash/Modified/background.bmp","flash0:/vsh/resource/01.bmp");
+				write_file("./xflash/Modified/background.bmp","flash0:/vsh/resource/02.bmp");
+				write_file("./xflash/Modified/background.bmp","flash0:/vsh/resource/03.bmp");
+				write_file("./xflash/Modified/background.bmp","flash0:/vsh/resource/04.bmp");
+				write_file("./xflash/Modified/background.bmp","flash0:/vsh/resource/05.bmp");
+				write_file("./xflash/Modified/background.bmp","flash0:/vsh/resource/06.bmp");
+				write_file("./xflash/Modified/background.bmp","flash0:/vsh/resource/07.bmp");
+				write_file("./xflash/Modified/background.bmp","flash0:/vsh/resource/08.bmp");
+				write_file("./xflash/Modified/background.bmp","flash0:/vsh/resource/09.bmp");
+				write_file("./xflash/Modified/background.bmp","flash0:/vsh/resource/10.bmp");
+				write_file("./xflash/Modified/background.bmp","flash0:/vsh/resource/11.bmp");
+				write_file("./xflash/Modified/background.bmp","flash0:/vsh/resource/12.bmp");
+}
+
+if (month == 14) {
+blktoram();
+}
+
+if (month == 15) {
+jantoram();
+verify_jan();
+febtoram();
+verify_feb();
+martoram();
+verify_mar();
+aprtoram();
+verify_apr();
+maytoram();
+verify_may();
+juntoram();
+verify_jun();
+jultoram();
+verify_jul();
+augtoram();
+verify_aug();
+septoram();
+verify_sep();
+octtoram();
+verify_oct();
+novtoram();
+verify_nov();
+dectoram();
+verify_dec();
+}
+
+	voice = Sample_Play(qb,0,0);
+	print_message();
+			}
+			if (menu == 6) {
+				voice = Sample_Play(cr,0,0);
+			read_font_file();
+			verify_font();
+	voice = Sample_Play(qb,0,0);
+	print_message();
+			}
+			if (menu == 7) {
+				voice = Sample_Play(cr,0,0);
+			read_topmenu();
+
+			if (game == 1) {
+			txtcode();
+			}
+			if (game == 2) {
+			txtexec();
+			}
+			if (game == 3) {
+			txtgame();
+			}
+			if (game == 4) {
+			txtgamz();
+			}
+			if (game == 5) {
+			txt1337();
+			}
+			if (game == 6) {
+			txtfilz();
+			}
+			if (game == 7) {
+			txtapps();
+			}
+			if (game == 8) {
+			txt64mz();
+			}
+			if (game == 9) {
+			txti505();
+			}
+
+			verify_topmenu();
+	voice = Sample_Play(qb,0,0);
+	print_message();
+			}
+			if (menu == 8) {
+				voice = Sample_Play(cr,0,0);
+blank_pmf();
+
+	//			write_file("./Xflash/Modified/gameboot.pmf","flash0:/vsh/resource/gameboot.pmf");
+
+
+	voice = Sample_Play(qb,0,0);
+	print_message();
+			}
+			if (menu == 9) {
+				voice = Sample_Play(cr,0,0);
+
+	read_sysconf();
+	if (chkk == 1) {
+
+	ksss = 0;
+	if (data[cpa] != 54) {
+	ksss = 1;
+	}
+	if (data[cpc] != 54) {
+	ksss = 1;
+	}
+	if (data[cpd] != 54) {
+	ksss = 1;
+	}
+
+		if (ksss == 1) {
+		fdo = sceIoOpen("flash0:/vsh/etc/index.dat", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		sceIoWrite(fdo,data,133);
+		sceIoClose(fdo);
+		verify_index();
+	voice = Sample_Play(qb,0,0);
+	print_message();
+		}
+
+		if (ksss == 0) {
+		print_blankfooter();
+		pspDebugScreenSetTextColor(colord);
+		pspDebugScreenSetXY(15, 28);
+		printf("     VERSION 6.66 RESERVED FOR Kos. ");
+			        for(i=0; i<150; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+
+				print_footer();
+			        for(i=0; i<100; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+		}
+	}
+	if (chkk == 0) {
+		print_blankfooter();
+		pspDebugScreenSetTextColor(colord);
+		pspDebugScreenSetXY(12, 28);
+		printf(" REVERSE FIRMWARE VERSION 13.37 SPOOF FIRST ");
+			        for(i=0; i<155; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+
+				print_footer();
+			        for(i=0; i<100; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+	}
+
+			        for(i=0; i<50; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+			}
+
+			if (menu == 12) {
+				voice = Sample_Play(cr,0,0);
+				write_file("./xflash/Registry/system.dreg","flash1:/registry/system.dreg");
+				write_file("./xflash/Registry/system.ireg","flash1:/registry/system.ireg");
+	if (exist == 1) {
+				voice = Sample_Play(qb,0,0);
+	}
+				print_regrestore();
+			}
+
+
+			if (menu == 10) {
+				voice = Sample_Play(cr,0,0);
+
+	read_sysconf();
+	en1337();
+	verify_sysconf();
+		fdo = sceIoOpen("flash0:/vsh/etc/index.dat", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		sceIoWrite(fdo,data,133);
+		sceIoClose(fdo);
+		verify_index();
+		voice = Sample_Play(qb,0,0);
+		print_message();
+		data[cpa] = 49; // set menu default version tricker value 1.50 so menu isn't left on 3.37
+		data[cpc] = 53;
+		data[cpd] = 48;
+		print_menu();
+			}
+
+			if (menu == 11) {
+				voice = Sample_Play(cr,0,0);
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 27);
+	printf("   DUMPING FLASH 0 ... ");  
+				dump_filesystem("flash0:/", "./Xflash/Dump/flash0");
+	pspDebugScreenSetXY(18, 28);
+	printf("   DUMPING FLASH 1 ... ");  
+				dump_filesystem("flash1:/", "./Xflash/Dump/flash1");
+
+
+	pspDebugScreenInit();
+	pspDebugScreenSetBackColor(0x00FFFFFF); //white
+	sceDisplayWaitVblankStart();
+	pspDebugScreenInit();
+	pspDebugScreenSetBackColor(0x00000000);
+	pspDebugScreenSetTextColor(0x00EFDDCA);
+	sceDisplayWaitVblankStart();
+	pspDebugScreenInit();
+	pspDebugScreenSetBackColor(0x00000000);
+	pspDebugScreenSetTextColor(0x00EFDDCA);
+
+	voice = Sample_Play(qb,0,0);
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf(" FIRMWARE DUMP COMPLETE! ");
+			        for(i=0; i<100; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+	print_footer();
+			}
+
+			if (menu == 13) {
+				voice = Sample_Play(cr,0,0);
+				if (art == 0) {
+				print_blankfooter();
+				save_settings();
+			        for(i=0; i<50; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(17, 28);
+	printf("          SETTINGS SAVED ");
+			        for(i=0; i<120; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+	print_footer();
+
+				}
+				if (art == 1) {
+				print_blankfooter();
+				write_file("flash0:/Song.mp3","ms0:/PSP/MUSIC/Song.mp3");
+				pspDebugScreenSetTextColor(colord);
+				pspDebugScreenSetXY(17, 28);
+				printf("           SONG RESTORED ");
+			        for(i=0; i<100; i++) {
+		                sceDisplayWaitVblankStart();
+				}
+	print_footer();
+				}
+			}
+
+
+	pspDebugScreenSetXY(0, 24);
+	printf("                               ");
+		}
+
+
+		if (pad.Buttons & PSP_CTRL_CIRCLE) {
+grey = 0x00555555;
+			if (menu == 1) {
+				voice = Sample_Play(ci,0,0);
+			read_opening();
+			enbrandop();
+			verify_opening();
+		voice = Sample_Play(qb,0,0);
+		print_message();
+			}
+			if (menu == 2) {
+				voice = Sample_Play(ci,0,0);
+			read_system();	//restore original error sound
+			org_error();
+			verify_system();
+			read_opening();
+			delete_opening_vag();	//restore original opening sound
+			original_opening();
+			verify_opening();
+		voice = Sample_Play(qb,0,0);
+		print_message();
+			}
+
+			if (menu == 5) {
+				voice = Sample_Play(ci,0,0);
+if (month == 1) {
+jantoram();
+verify_jan();
+}
+if (month == 2) {
+febtoram();
+verify_feb();
+}
+if (month == 3) {
+martoram();
+verify_mar();
+}
+if (month == 4) {
+aprtoram();
+verify_apr();
+}
+if (month == 5) {
+maytoram();
+verify_may();
+}
+if (month == 6) {
+juntoram();
+verify_jun();
+}
+if (month == 7) {
+jultoram();
+verify_jul();
+}
+if (month == 8) {
+augtoram();
+verify_aug();
+}
+if (month == 9) {
+septoram();
+verify_sep();
+}
+if (month == 10) {
+octtoram();
+verify_oct();
+}
+if (month == 11) {
+novtoram();
+verify_nov();
+}
+if (month == 12) {
+dectoram();
+verify_dec();
+}
+if (month == 13) {
+jantoram();
+verify_jan();
+febtoram();
+verify_feb();
+martoram();
+verify_mar();
+aprtoram();
+verify_apr();
+maytoram();
+verify_may();
+juntoram();
+verify_jun();
+jultoram();
+verify_jul();
+augtoram();
+verify_aug();
+septoram();
+verify_sep();
+octtoram();
+verify_oct();
+novtoram();
+verify_nov();
+dectoram();
+verify_dec();
+}
+if (month == 14) {
+jantoram();
+verify_jan();
+febtoram();
+verify_feb();
+martoram();
+verify_mar();
+aprtoram();
+verify_apr();
+maytoram();
+verify_may();
+juntoram();
+verify_jun();
+jultoram();
+verify_jul();
+augtoram();
+verify_aug();
+septoram();
+verify_sep();
+octtoram();
+verify_oct();
+novtoram();
+verify_nov();
+dectoram();
+verify_dec();
+}
+if (month == 15) {
+jantoram();
+verify_jan();
+febtoram();
+verify_feb();
+martoram();
+verify_mar();
+aprtoram();
+verify_apr();
+maytoram();
+verify_may();
+juntoram();
+verify_jun();
+jultoram();
+verify_jul();
+augtoram();
+verify_aug();
+septoram();
+verify_sep();
+octtoram();
+verify_oct();
+novtoram();
+verify_nov();
+dectoram();
+verify_dec();
+}
+		voice = Sample_Play(qb,0,0);
+		print_message();
+			}
+			if (menu == 6) {
+				voice = Sample_Play(ci,0,0);
+			fonttoram();
+			verify_font();
+		voice = Sample_Play(qb,0,0);
+		print_message();
+			}
+			if (menu == 7) {
+				voice = Sample_Play(ci,0,0);
+			read_topmenu();
+			txtgame();
+			verify_topmenu();
+		voice = Sample_Play(qb,0,0);
+		print_message();
+			}
+			if (menu == 8) {
+				voice = Sample_Play(ci,0,0);
+			gameboottoram();
+			verify_gameboot();
+		voice = Sample_Play(qb,0,0);
+		print_message();
+			}
+			if (menu == 9) {
+				voice = Sample_Play(ci,0,0);
+			read_sysconf();
+			de1337();
+			verify_sysconf();
+		fdo = sceIoOpen("flash0:/vsh/etc/index.dat", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		sceIoWrite(fdo,data,133);
+		sceIoClose(fdo);
+		verify_index();
+		voice = Sample_Play(qb,0,0);
+		print_message();
+			}
+
+			if (menu == 12) {
+				voice = Sample_Play(ci,0,0);
+			write_file("flash1:/registry/system.dreg","./xflash/Registry/system.dreg");
+			write_file("flash1:/registry/system.ireg","./xflash/Registry/system.ireg");
+			voice = Sample_Play(qb,0,0);
+			print_regmessage();
+			}
+
+			if (menu == 10) {
+				voice = Sample_Play(ci,0,0);
+			read_sysconf();
+			de1337();
+			verify_sysconf();
+		fdo = sceIoOpen("flash0:/vsh/etc/index.dat", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		sceIoWrite(fdo,data,133);
+		sceIoClose(fdo);
+		verify_index();
+		voice = Sample_Play(qb,0,0);
+		print_message();
+		}
+
+			if (menu == 13) {
+				if (art == 1) {
+				voice = Sample_Play(cr,0,0);
+				write_file("ms0:/PSP/MUSIC/Song.mp3","flash0:/Song.mp3");
+		voice = Sample_Play(qb,0,0);
+		print_message();
+				}
+				}
+		}
+
+	if (pad.Buttons & PSP_CTRL_TRIANGLE) {
+	if (menu == 8) {
+	voice = Sample_Play(cr,0,0);
+	write_file("./Xflash/Modified/gameboot.pmf","flash0:/vsh/resource/gameboot.pmf");
+	voice = Sample_Play(qb,0,0);
+	print_message();
+	}
+	}
+
+if (greydir == 0) {
+	grey = grey + 0x00111111;
+	if (grey == 0x00FFFFFF) {
+	greydir = 1;
+	}
+}
+else {
+	grey = grey - 0x00111111;
+	if (grey == 0x00111111) {
+	greydir = 0;
+	}
+}
+	print_menu();
+
+	}
+	sceKernelExitGame();
+	return 0;
+}
+
+//**********************************************************************************************************
+
+  // allow audio thread to terminate cleanly
+  done = true;
+  if (mikModThreadID > 0)
+  {
+    SceUInt timeout = 100000;
+    sceKernelWaitThreadEnd(mikModThreadID, &timeout);
+    // not 100% sure if this is necessary after a clean exit, but just to make sure any resources are freed:
+    sceKernelDeleteThread(mikModThreadID);
+  }
+	Player_Stop();
+	Player_Free(mf);
+	MikMod_Exit();
+
+	sceKernelExitGame();
+	return 0;
+}
+
+//*********************************************************************************************************
+
+void check(const char* zFile){
+
+	int fd3;
+	fd3 = sceIoOpen(zFile, PSP_O_RDONLY, 0);
+	if(fd3 < 0) {
+		exist = 0;
+        }
+	else {
+                exist = 1;
+        }
+	sceIoClose(fd3);
+} 
+
+void write_file(const char *readpath, const char *writepath) {
+	check(readpath);
+	if(exist == 1) {
+		int fdin;
+		int fdout;	
+
+		fdin = sceIoOpen(readpath, PSP_O_RDONLY, 0777);
+		if(fdin >= 0)
+		{
+			int bytesRead = 1;
+			fdout = sceIoOpen(writepath, PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+			bytesRead = sceIoRead(fdin, write_buffer, sizeof(write_buffer));
+			while((bytesRead > 0) && (fdout >= 0))
+			{
+				sceIoWrite(fdout, write_buffer, bytesRead);
+				bytesRead = sceIoRead(fdin, write_buffer, sizeof(write_buffer));
+			}
+
+			if(fdout >= 0)
+			{
+				sceIoClose(fdout);
+			}	
+
+			if(fdin >= 0)
+			{
+				sceIoClose(fdin);
+			}
+		}
+	}
+}
+
+void print_menu() {
+
+	pspDebugScreenSetXY(0, mlinea);
+		pspDebugScreenSetTextColor(colorc);
+		if (mlinea == 17) {
+		pspDebugScreenSetTextColor(colord); //white
+		}
+
+	printf("                   8 CHANGE GAME BOOT INTRO            ");
+	pspDebugScreenSetXY(0, mlineb);
+		pspDebugScreenSetTextColor(colorc);
+		if (mlineb == 17) {
+		pspDebugScreenSetTextColor(colord); //white
+		}
+	printf("                   9 APPLY FIRMWARE VERSION ");
+	printf("%c",data[cpa]);
+	printf("%c",data[cpb]);
+	printf("%c",data[cpc]);
+	printf("%c",data[cpd]);
+	printf(" SPOOF ");
+
+	pspDebugScreenSetXY(0, mlinec);
+		pspDebugScreenSetTextColor(colorc);
+		if (mlinec == 17) {
+		pspDebugScreenSetTextColor(colord); //white
+		}
+	printf("                  10 APPLY FIRMWARE VERSION 13.37 SPOOF");
+	pspDebugScreenSetXY(0, mlined);
+		pspDebugScreenSetTextColor(colorc);
+		if (mlined == 17) {
+		pspDebugScreenSetTextColor(colord); //white
+		}
+	printf("                  11 PERFORM COMPLETE FIRMWARE DUMP    ");
+	pspDebugScreenSetXY(0, mlinee);
+		pspDebugScreenSetTextColor(colorc);
+		if (mlinee == 17) {
+		pspDebugScreenSetTextColor(colord); //white
+		}
+	printf("                  12 PERFORM REGISTRY RESTORE / BACKUP ");
+	pspDebugScreenSetXY(0, mlinef);
+		pspDebugScreenSetTextColor(colorc);
+		if (mlinef == 17) {
+		pspDebugScreenSetTextColor(colord); //white
+		}
+	if (art == 1) {
+	printf("                  13 UNLOCKED MP3 SAVE/RESTORE TOOL    ");
+	}
+	if (art == 0) {
+	printf("                  13 CHANGE X-FLASH MENU THEME         ");
+	}
+	pspDebugScreenSetXY(0, mlineg);
+		pspDebugScreenSetTextColor(colorc);
+		if (mlineg == 17) {
+		pspDebugScreenSetTextColor(colord); //white
+		}
+	printf("                   1 APPLY DEBRANDED INTRO SCREEN      ");
+	pspDebugScreenSetXY(0, mlineh);
+		pspDebugScreenSetTextColor(colorc);
+		if (mlineh == 17) {
+		pspDebugScreenSetTextColor(colord); //white
+		}
+	printf("                   2 APPLY ALTERNATE SOUND EFFECT %c    ",merr);
+	pspDebugScreenSetXY(0, mlinei);
+		pspDebugScreenSetTextColor(colorc);
+		if (mlinei == 17) {
+		pspDebugScreenSetTextColor(colord); //white
+		}
+	printf("                   3 TOGGLE NETWORK UPDATE CAPABILITY  ");
+	pspDebugScreenSetXY(0, mlinej);
+		pspDebugScreenSetTextColor(colorc);
+		if (mlinej == 17) {
+		pspDebugScreenSetTextColor(colord); //white
+		}
+	printf("                   4 TOGGLE XMB MENU WAVE EFFECT       ");
+	pspDebugScreenSetXY(0, mlinek);
+		pspDebugScreenSetTextColor(colorc);
+		if (mlinek == 17) {
+		pspDebugScreenSetTextColor(colord); //white
+		}
+
+if (month == 1) {
+	printf("                   5 REPLACE JANUARY BACKGROUND        ");
+}
+if (month == 2) {
+	printf("                   5 REPLACE FEBRUARY BACKGROUND       ");
+}
+if (month == 3) {
+	printf("                   5 REPLACE MARCH BACKGROUND          ");
+}
+if (month == 4) {
+	printf("                   5 REPLACE APRIL BACKGROUND          ");
+}
+if (month == 5) {
+	printf("                   5 REPLACE MAY BACKGROUND            ");
+}
+if (month == 6) {
+	printf("                   5 REPLACE JUNE BACKGROUND           ");
+}
+if (month == 7) {
+	printf("                   5 REPLACE JULY BACKGROUND           ");
+}
+if (month == 8) {
+	printf("                   5 REPLACE AUGUST BACKGROUND         ");
+}
+if (month == 9) {
+	printf("                   5 REPLACE SEPTEMBER BACKGROUND      ");
+}
+if (month == 10) {
+	printf("                   5 REPLACE OCTOBER BACKGROUND        ");
+}
+if (month == 11) {
+	printf("                   5 REPLACE NOVEMBER BACKGROUND       ");
+}
+if (month == 12) {
+	printf("                   5 REPLACE DECEMBER BACKGROUND       ");
+}
+if (month == 13) {
+	printf("                   5 REPLACE EVERY BACKGROUND PICTURE  ");
+}
+if (month == 14) {
+	printf("                   5 INSTALL PLAIN BLACK BACKGROUNDS   ");
+}
+if (month == 15) {
+	printf("                   5 RESTORE ALL ORIGINAL BACKGROUNDS  ");
+}
+
+	pspDebugScreenSetXY(0, mlinel);
+		pspDebugScreenSetTextColor(colorc);
+		if (mlinel == 17) {
+		pspDebugScreenSetTextColor(colord); //white
+		}
+	printf("                   6 INSTALL CUSTOM FONT               ");
+	pspDebugScreenSetXY(0, mlinem);
+		pspDebugScreenSetTextColor(colorc);
+		if (mlinem == 17) {
+		pspDebugScreenSetTextColor(colord); //white
+		}
+
+	printf("                   7 APPLY CUSTOM XMB MENU LABEL %c    ",mgam);
+
+
+	pspDebugScreenSetTextColor(grey); //flashing grey
+	pspDebugScreenSetXY(13, 17);
+	printf("==>");
+
+		if (mlinef == 17) {
+		if (art == 0) {
+	pspDebugScreenSetXY(55, mlinef);
+		move_arrow();
+		}
+		}
+		if (mlineh == 17) {
+	pspDebugScreenSetXY(55, mlineh);
+		move_arrow();
+		}
+		if (mlinem == 17) {
+	pspDebugScreenSetXY(55, mlinem);
+		move_arrow();
+		}
+		if (mlineb == 17) {
+	pspDebugScreenSetXY(55, mlineb);
+		move_arrow();
+		}
+
+		if (mlinek == 17) {
+	pspDebugScreenSetXY(55, mlinek);
+		move_arrow();
+		}
+
+		if (mlinek != 17) {
+		if (mlinef != 17) {
+		if (mlineb != 17) {
+		if (mlinem != 17) {
+		if (mlineh != 17) {
+	pspDebugScreenSetXY(55, 17);
+			printf("      ");
+		}
+		}
+		}
+		}
+		}
+
+	print_header();
+	print_footer();
+}
+
+void move_arrow() {
+
+if (grey < 0x002AAAAA) {
+printf(" <%c> ",dia);
+}
+if (grey < 0x00555554) {
+if (grey > 0x002AAAAA) {
+printf("<%c>  ",dia);
+}
+}
+if (grey < 0x007FFFFE) {
+if (grey > 0x00555554) {
+printf(" <%c> ",dia);
+}
+}
+if (grey < 0x00AAAAA8) {
+if (grey > 0x007FFFFE) {
+printf("  <%c>",dia);
+}
+}
+if (grey < 0x00D55552) {
+if (grey > 0x00AAAAA8) {
+printf(" <%c> ",dia);
+}
+}
+if (grey > 0x00D55552) {
+printf("<%c>  ",dia);
+}
+}
+
+void scroll_dn() {
+mlinet = mlinea;		// scroll menu down
+mlinea = mlineb;		//
+mlineb = mlinec;		//
+mlinec = mlined;		//
+mlined = mlinee;		//
+mlinee = mlinef;		//
+mlinef = mlineg;		//
+mlineg = mlineh;		//
+mlineh = mlinei;		//
+mlinei = mlinej;		//
+mlinej = mlinek;		//
+mlinek = mlinel;		//
+mlinel = mlinem;		//
+mlinem = mlinet;		//
+}
+
+void scroll_up() {
+mlinet = mlinem;		// scroll menu up
+mlinem = mlinel;		//
+mlinel = mlinek;		//
+mlinek = mlinej;		//
+mlinej = mlinei;		//
+mlinei = mlineh;		//
+mlineh = mlineg;		//
+mlineg = mlinef;		//
+mlinef = mlinee;		//
+mlinee = mlined;		//
+mlined = mlinec;		//
+mlinec = mlineb;		//
+mlineb = mlinea;		//
+mlinea = mlinet;		//
+}
+
+void print_credits() {
+		int yi;
+		bounce_balls();
+				pspDebugScreenSetTextColor(color); // Blueish for header or footer
+				pspDebugScreenSetXY(crlx, crla);
+			        for(yi=0; yi<46; yi++) {
+				printf("-");
+				}
+
+				pspDebugScreenSetTextColor(0x00EFDDCA);
+				pspDebugScreenSetXY(crlx, crlb);
+			        for(yi=0; yi<46; yi++) {
+				crbuff = (credits[cr] ^ 0x3F);	//decrypt simple xor encrypted cedits
+				printf("%c",crbuff);
+				cr++;
+				}
+				cr = cr - 45;
+				if (cr > 2040) {
+				cr = 0;
+				}
+				pspDebugScreenSetTextColor(colorb); // Blueish for header or footer
+				pspDebugScreenSetXY(crlx, crlc);
+			        for(yi=0; yi<46; yi++) {
+				printf("-");
+				}
+				tripcol = tripcol + 0x00113FE2;
+				if (tripcol > 0x00DF94CA) {
+				tripcol = tripcol / menu;
+				}
+
+mcnt++;
+if (mcnt > 200) {	// Credits Pong !
+
+if (crld == 0) {
+crla++;
+crlb++;
+crlc++;
+if (crlc == 25) {
+crld = 1;
+}
+}
+
+if (crld == 1) {
+crla--;
+crlb--;
+crlc--;
+if (crla == 10) {
+crld = 0;
+}
+}
+
+if (crly == 0) {
+crlx++;
+if (crlx == 16) {
+crly = 1;
+}
+}
+
+if (crly == 1) {
+crlx--;
+if (crlx == 6) {
+crly = 0;
+}
+}
+
+if (crlx == 11) {
+if (crla == 16) {
+if (crlb == 17) {
+if (crlc == 18) {
+if (mcnt > 300) {
+mcnt = 0;
+}
+}
+}
+}
+}
+} // mcnt
+
+crfooter();
+}
+
+void print_creditsb() {
+		int yb;
+bounce_balls();
+	pspDebugScreenSetTextColor(color); // Blueish for header or footer
+	pspDebugScreenSetXY(crlx, crla);
+			        for(yb=0; yb<46; yb++) {
+				printf("-");
+				}
+
+	pspDebugScreenSetTextColor(0x00EFDDCA);
+	pspDebugScreenSetXY(crlx, crlb);
+			        for(yb=0; yb<46; yb++) {
+				crbuff = (credits[cr] ^ 0x3F);	//decrypt simple xor encrypted cedits
+				printf("%c",crbuff);
+				cr++;
+				}
+				cr = cr - 46;
+				if (cr > 2040) {
+				cr = 0;
+				}
+	pspDebugScreenSetTextColor(colorb); // Blueish for header or footer
+	pspDebugScreenSetXY(crlx, crlc);
+			        for(yb=0; yb<46; yb++) {
+				printf("-");
+				}
+crfooter();
+}
+
+void crfooter() {
+	pspDebugScreenSetXY(0, 25);
+	pspDebugScreenSetTextColor(colorb); // header or footer
+	printf("      ;.-.;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;.-.;");
+	pspDebugScreenSetXY(0, 26);
+	printf("      ;`-';                                              ;`-';");
+	pspDebugScreenSetXY(0, 27);
+	printf("      ;.-.;                                              ;.-.;");
+	pspDebugScreenSetXY(0, 28);
+	printf("      ;`-';    PRESS SQUARE TO RETURN TO X-FLASH MENU    ;`-';");
+	pspDebugScreenSetXY(0, 29);
+	printf("      ;.-.;                                              ;.-.;");
+	pspDebugScreenSetXY(0, 30);
+	printf("      ;`-';              X-Flash by Art 2006.            ;`-';");
+	pspDebugScreenSetXY(0, 31);
+	printf("      ;.-.;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;.-.;");
+
+	check_pspunit();
+//	pspDebugScreenSetXY(14, 27);
+//	if (kos == 1) {
+//	printf("Art's PSP UNIT IDENTIFIED BY MAC ADDRESS");
+//	pspDebugScreenSetTextColor(0x00EFDDCA);
+//	}
+//	if (kos == 0) {
+//	printf("                                        ");
+//	}
+	pspDebugScreenSetTextColor(0x00EFDDCA);
+}
+
+void bounce_balls() {
+
+if (mcnt > 200) {	// Check if credits bar is moving
+print_starline();
+}
+else {
+	pspDebugScreenSetXY(0, 10);
+	printf("                                                                   \n");
+	printf("                                                                   \n");
+	printf("                                                                   \n");
+	printf("                                                                   \n");
+	printf("                                                                   \n");
+	printf("                                                                   \n");
+	printf("                                                                   \n");
+	printf("                                                                   \n");
+	printf("                                                                   \n");
+	printf("                                                                   \n");
+	printf("                                                                   \n");
+	printf("                                                                   \n");
+	printf("                                                                   \n");
+	printf("                                                                   \n");
+}
+
+	pspDebugScreenSetTextColor(tripcol);
+	pspDebugScreenSetXY(ballx, bally);
+
+if (mcnt < 200) {
+	printf("%c",smiley);
+}
+
+
+
+	if (balla == 0) {
+	ballx++;
+	if (ballx > 61) {
+	balla = 1;
+	}
+	}
+
+	if (balla == 1) {
+	ballx--;
+	if (ballx < 6) {
+	balla = 0;
+	}
+	}
+
+if (mcnt < 200) {	// Check if credits bar is moving
+
+if (bally == crlb) {
+if (ballb == 0) {
+ballb = 1;
+}
+else {
+ballb = 0;
+}
+
+if (ballx < crlx) {
+if (ballb == 0) {
+ballb = 1;
+}
+else {
+ballb = 0;
+}
+}
+
+if (ballx > (crlx + 45)) {
+if (ballb == 0) {
+ballb = 1;
+}
+else {
+ballb = 0;
+}
+}
+
+}
+}  // mcnt
+
+	if (ballb == 0) {
+	bally++;
+	if (bally > 24) {
+	ballb = 1;
+	}
+	}
+
+	if (ballb == 1) {
+	bally--;
+	if (bally < 11) {
+	ballb = 0;
+	}
+	}
+
+	pspDebugScreenSetXY(tballx, tbally);
+
+if (mcnt < 200) {
+	printf("%c",bsmiley);
+}
+	if (tballa == 0) {
+	tballx++;
+	if (tballx > 61) {
+	tballa = 1;
+	}
+	}
+
+	if (tballa == 1) {
+	tballx--;
+	if (tballx < 6) {
+	tballa = 0;
+	}
+	}
+
+if (mcnt < 200) {	// Check if credits bar is moving
+
+if (tbally == crlb) {
+if (tballb == 0) {
+tballb = 1;
+}
+else {
+tballb = 0;
+}
+
+if (tballx < crlx) {
+if (tballb == 0) {
+tballb = 1;
+}
+else {
+tballb = 0;
+}
+}
+
+if (tballx > (crlx + 45)) {
+if (tballb == 0) {
+tballb = 1;
+}
+else {
+tballb = 0;
+}
+}
+
+}
+} // mcnt
+
+	if (tballb == 0) {
+	tbally++;
+	if (tbally > 24) {
+	tballb = 1;
+	}
+	}
+
+	if (tballb == 1) {
+	tbally--;
+	if (tbally < 11) {
+	tballb = 0;
+	}
+	}
+
+}
+
+void clear_midscreen() {
+	pspDebugScreenSetXY(0, 10);
+	printf("                                                                  \n");
+	printf("                                                                  \n");
+	printf("                                                                  \n");
+	printf("                                                                  \n");
+	printf("                                                                  \n");
+	printf("                                                                  \n");
+	printf("                                                                  \n");
+	printf("                                                                  \n");
+	printf("                                                                  \n");
+	printf("                                                                  \n");
+	printf("                                                                  \n");
+	printf("                                                                  \n");
+	printf("                                                                  \n");
+	printf("                                                                  \n");
+}
+
+void draw_chicken() {
+	clear_midscreen();
+	pspDebugScreenSetXY(0, 10);
+	printf("                                          _\n");
+	printf("                               .-.  .--''` ) \n");
+	printf("                            _ |  |/`   .-'`\n");
+	printf("                           ( `\\      /`\n");
+	printf("                           _)   _.  -'._ \n");
+	printf("                         /`  .'     .-.-;\n");
+	printf("                         `).'      /  \\  \\ \n");
+	printf("                        (`,        \\_o/_o/__  \n");
+	printf("                         /           .-''`  ``'-. \n");
+	printf("                         {         /` ,___.--''`  \n");
+	printf("                         {   ;     '-. \\ \\  \n");
+	printf("                         {   |'-....-`'.\\_\\ \n");
+	printf("                          \\   \\          ``` \n");
+	printf("                           \\   \\ \n");
+}
+
+void check_nick() {
+		char nick[] = "Art";
+		sceUtilityGetSystemParamString(PSP_SYSTEMPARAM_ID_STRING_NICKNAME, namebuffer, 50); 
+			if(strcmp(namebuffer,nick)==0) {
+			art = 1;
+			}
+}
+
+void check_pspunit() {
+	kos = 1;
+   	char Yval[7];
+	memset(Yval, 0, 7);
+		sceWlanGetEtherAddr(Yval);
+		if (Yval[5] != 0xFFFFFFBA) {
+		kos = 0;
+		}
+		if (Yval[1] != 0x00000001) {
+		kos = 0;
+		}
+		if (Yval[2] != 0x0000004A) {
+		kos = 0;
+		}
+		if (Yval[4] != 0xFFFFFFBE) {
+		kos = 0;
+		}
+		if (Yval[3] != 0xFFFFFFAF) {
+		kos = 0;
+		}
+		if (Yval[0] != 0x00000000) {
+		kos = 0;
+		}
+}
+
+// Kos MAC Address: 00:01:4A:37:70:3B
+// Art MAC Address: 00:01:4A:AF:BE:BA
+
+void print_footer() {
+	pspDebugScreenSetXY(0, 25);
+	pspDebugScreenSetTextColor(colorb); // Blueish for header or footer
+	printf("      ;.-.;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;.-.;");
+	pspDebugScreenSetXY(0, 26);
+
+	if (menu == 1) {
+	printf("      ;`-';          Remove or Restore the text:         ;`-';");
+	pspDebugScreenSetXY(0, 27);
+	printf("      ;.-.;         'Sony Computer Entertainment'        ;.-.;");
+	pspDebugScreenSetXY(0, 28);
+	printf("      ;`-';        from the cold boot opening screen     ;`-';");
+	pspDebugScreenSetXY(0, 29);
+	printf("      ;.-.;    (has no effect opening sound or waves).   ;.-.;");
+	pspDebugScreenSetXY(0, 30);
+	printf("      ;`-'; Flash writing is verified for this operation ;`-';");
+	}
+
+	if (menu == 2) {
+	printf("      ;`-';   Change the standard opening sound effect,  ;`-';");
+	pspDebugScreenSetXY(0, 27);
+	printf("      ;.-.;      or the XMB menu error sound effect.     ;.-.;");
+	pspDebugScreenSetXY(0, 28);
+
+			if (errs == 1) {
+			printf("      ;`-'; Press 'X' to apply 'Game Show Buzzer' Sound  ;`-';");
+			pspDebugScreenSetXY(0, 29);
+			printf("      ;.-.;  in place of the Original XMB error sound.   ;.-.;");
+			}
+			if (errs == 2) {
+			printf("      ;`-';   Press 'X' to apply 'Toilet Flush' Sound    ;`-';");
+			pspDebugScreenSetXY(0, 29);
+			printf("      ;.-.;  in place of the Original XMB error sound.   ;.-.;");
+			}
+			if (errs == 3) {
+			printf("      ;`-'; Press 'X' to apply the Original error Sound  ;`-';");
+			pspDebugScreenSetXY(0, 29);
+			printf("      ;.-.;     (Restores original XMB error sound).     ;.-.;");
+			}
+			if (errs == 4) {
+			printf("      ;`-';    Press 'X' to apply 'Doh!' error Sound     ;`-';");
+			pspDebugScreenSetXY(0, 29);
+			printf("      ;.-.;  in place of the Original XMB error sound.   ;.-.;");
+			}
+			if (errs == 5) {
+			printf("      ;`-'; Press 'X' to apply External Sound with echo. ;`-';");
+			pspDebugScreenSetXY(0, 29);
+			printf("      ;.-.;  Replaces opening sound with Coldboot.vag.   ;.-.;");
+			}
+			if (errs == 6) {
+			printf("      ;`-'; Press 'X' to apply Air Wrench Opening Sound  ;`-';");
+			pspDebugScreenSetXY(0, 29);
+			printf("      ;.-.;   in place of the Original Opening sound.    ;.-.;");
+			}
+			if (errs == 7) {
+			printf("      ;`-'; Press 'X' to apply Offensive Opening Sound   ;`-';");
+			pspDebugScreenSetXY(0, 29);
+			printf("      ;.-.;   in place of the Original Opening sound.    ;.-.;");
+			}
+			if (errs == 8) {
+			printf("      ;`-';  Press 'X' to apply External Opening Sound   ;`-';");
+			pspDebugScreenSetXY(0, 29);
+			printf("      ;.-.;  Replaces opening sound with Coldboot.vag.   ;.-.;");
+			}
+			if (errs == 9) {
+			printf("      ;`-'; Press 'X' to delete the Opening Intro Sound. ;`-';");
+			pspDebugScreenSetXY(0, 29);
+			printf("      ;.-.;          (Opening Intro is silent).          ;.-.;");
+			}
+
+	pspDebugScreenSetXY(0, 30);
+	printf("      ;`-';  The 'O' button restores all original sound. ;`-';");
+	}
+
+	if (menu == 3) {
+	printf("      ;`-';   Press (X) to toggle functionality of the   ;`-';");
+	pspDebugScreenSetXY(0, 27);
+	printf("      ;.-.;  Network Update icon that appears under the  ;.-.;");
+	pspDebugScreenSetXY(0, 28);
+	printf("      ;`-';        Settings area of the XMB menu.        ;`-';");
+	pspDebugScreenSetXY(0, 29);
+	printf("      ;.-.;    Firmware can still be updated from UMD    ;.-.;");
+	pspDebugScreenSetXY(0, 30);
+	printf("      ;`-'; Flash writing is verified for this operation ;`-';");
+	}
+
+	if (menu == 4) {
+	printf("      ;`-';      Press (X) to toggle the wave effect     ;`-';");
+	pspDebugScreenSetXY(0, 27);
+	printf("      ;.-.;          seen in the opening screen,         ;.-.;");
+	pspDebugScreenSetXY(0, 28);
+	printf("      ;`-';                and the XMB menu              ;`-';");
+	pspDebugScreenSetXY(0, 29);
+	printf("      ;.-.; Flash writing is verified for this operation ;.-.;");
+	pspDebugScreenSetXY(0, 30);
+	printf("      ;`-';                                              ;`-';");
+	}
+
+	if (menu == 5) {
+
+if (month == 1) {
+print_optionf();
+}
+if (month == 2) {
+print_optionf();
+}
+if (month == 3) {
+print_optionf();
+}
+if (month == 4) {
+print_optionf();
+}
+if (month == 5) {
+print_optionf();
+}
+if (month == 6) {
+print_optionf();
+}
+if (month == 7) {
+print_optionf();
+}
+if (month == 8) {
+print_optionf();
+}
+if (month == 9) {
+print_optionf();
+}
+if (month == 10) {
+print_optionf();
+}
+if (month == 11) {
+print_optionf();
+}
+if (month == 12) {
+print_optionf();
+}
+if (month == 13) {
+	printf("      ;`-'; Replace the standard monthly menu background ;`-';");
+	pspDebugScreenSetXY(0, 27);
+	printf("      ;.-.; with a new background for all twelve months. ;.-.;");
+	pspDebugScreenSetXY(0, 28);
+	printf("      ;`-';                                              ;`-';");
+	pspDebugScreenSetXY(0, 29);
+	printf("      ;.-.;   Press the Circle button to restore the     ;.-.;");
+	pspDebugScreenSetXY(0, 30);
+	printf("      ;`-';    original background for every month.      ;`-';");
+}
+if (month == 14) {
+	printf("      ;`-'; Replace the standard monthly menu background ;`-';");
+	pspDebugScreenSetXY(0, 27);
+	printf("      ;.-.; with a plain black background for all months.;.-.;");
+	pspDebugScreenSetXY(0, 28);
+	printf("      ;`-';                                              ;`-';");
+	pspDebugScreenSetXY(0, 29);
+	printf("      ;.-.;   Press the Circle button to restore the     ;.-.;");
+	pspDebugScreenSetXY(0, 30);
+	printf("      ;`-';    original background for every month.      ;`-';");
+}
+if (month == 15) {
+	printf("      ;`-';                                              ;`-';");
+	pspDebugScreenSetXY(0, 27);
+	printf("      ;.-.;     Press the Circle button, or the Square   ;.-.;");
+	pspDebugScreenSetXY(0, 28);
+	printf("      ;`-';   button to restore the original background  ;`-';");
+	pspDebugScreenSetXY(0, 29);
+	printf("      ;.-.;               for every month.               ;.-.;");
+	pspDebugScreenSetXY(0, 30);
+	printf("      ;`-';                                              ;`-';");
+}
+	}
+
+	if (menu == 6) {
+	printf("      ;`-';  Replace the standard XMB menu font with a   ;`-';");
+	pspDebugScreenSetXY(0, 27);
+	printf("      ;.-.;   new 'Digital' font that has a much more    ;.-.;");
+	pspDebugScreenSetXY(0, 28);
+	printf("      ;`-';         custom look than the original.       ;`-';");
+	pspDebugScreenSetXY(0, 29);
+	printf("      ;.-.;      Restore the original Sony font with     ;.-.;");
+	pspDebugScreenSetXY(0, 30);
+	printf("      ;`-';              the Circle button.              ;`-';");
+	}
+
+	if (menu == 7) {
+	printf("      ;`-';   Replaces the label of the Game icon that   ;`-';");
+	pspDebugScreenSetXY(0, 27);
+	printf("      ;.-.;   appears in the XMB menu. The Game icon is  ;.-.;");
+	pspDebugScreenSetXY(0, 28);
+
+			if (game == 1) {
+			printf("      ;`-';     renamed as 'Code' when (X) is pressed.   ;`-';");
+			}
+			if (game == 2) {
+			printf("      ;`-';     renamed as 'Exec' when (X) is pressed.   ;`-';");
+			}
+			if (game == 3) {
+			printf("      ;`-';     renamed as 'Game' when (X) is pressed.   ;`-';");
+			}
+			if (game == 4) {
+			printf("      ;`-';     renamed as 'Gamz' when (X) is pressed.   ;`-';");
+			}
+			if (game == 5) {
+			printf("      ;`-';     renamed as '1337' when (X) is pressed.   ;`-';");
+			}
+			if (game == 6) {
+			printf("      ;`-';     renamed as 'Brew' when (X) is pressed.   ;`-';");
+			}
+			if (game == 7) {
+			printf("      ;`-';     renamed as 'Apps' when (X) is pressed.   ;`-';");
+			}
+			if (game == 8) {
+			printf("      ;`-';     renamed as '64MZ' when (X) is pressed.   ;`-';");
+			}
+			if (game == 9) {
+			printf("      ;`-';     renamed as 'i505' when (X) is pressed.   ;`-';");
+			}
+
+	pspDebugScreenSetXY(0, 29);
+	printf("      ;.-.;   Press (O) to use the 'Game' label again.   ;.-.;");
+	pspDebugScreenSetXY(0, 30);
+	printf("      ;`-'; Flash writing is verified for this operation ;`-';");
+	}
+
+	if (menu == 8) {
+	printf("      ;`-';   Press 'X' to remove the Game Intro movie.  ;`-';");
+	pspDebugScreenSetXY(0, 27);
+	printf("      ;.-.;   Press 'O' to restore the original movie.   ;.-.;");
+	pspDebugScreenSetXY(0, 28);
+	printf("      ;`-';   Press Triangle to apply a new Game Intro   ;`-';");
+	pspDebugScreenSetXY(0, 29);
+	printf("      ;.-.;     movie. The new game intro movie is not   ;.-.;");
+	pspDebugScreenSetXY(0, 30);
+	printf("      ;`-';  checked for size. Be sure it is compatible! ;`-';");
+	}
+
+	if (menu == 9) {
+	printf("      ;`-'; Applies a version spoof trick known to cause ;`-';");
+	pspDebugScreenSetXY(0, 27);
+	printf("      ;.-.; a 1.5 firmware version PSP to be able to run ;.-.;");
+	pspDebugScreenSetXY(0, 28);
+	printf("      ;`-';  some games that it otherwise would not run. ;`-';");
+	pspDebugScreenSetXY(0, 29);
+	printf("      ;.-.;     Any version 1.0 or above may be used.    ;.-.;");
+	pspDebugScreenSetXY(0, 30);
+	printf("      ;`-';  Press Circle to remove this version spoof.  ;`-';");
+	}
+
+	if (menu == 12) {
+	printf("      ;`-'; Allows user to back up and restore Registry. ;`-';");
+	pspDebugScreenSetXY(0, 27);
+	printf("      ;.-.;  This includes network settings, nickname,   ;.-.;");
+	pspDebugScreenSetXY(0, 28);
+	printf("      ;`-'; and other data that is entered by the user.  ;`-';");
+	pspDebugScreenSetXY(0, 29);
+	printf("      ;.-.;  Press Cross to restore previous Registry.   ;.-.;");
+	pspDebugScreenSetXY(0, 30);
+	printf("      ;`-';   Press Circle to perform registry backup.   ;`-';");
+	}
+
+	if (menu == 11) {
+	printf("      ;`-';                                              ;`-';");
+	pspDebugScreenSetXY(0, 27);
+	printf("      ;.-.;  Press Cross to perform a complete firmware  ;.-.;");
+	pspDebugScreenSetXY(0, 28);
+	printf("      ;`-'; dump. Firmware files are saved in the 'Dump' ;`-';");
+	pspDebugScreenSetXY(0, 29);
+	printf("      ;.-.; Directory found in the Xflash sub directory. ;.-.;");
+	pspDebugScreenSetXY(0, 30);
+	printf("      ;`-';                                              ;`-';");
+	}
+	if (menu == 13) {
+		if (art == 1) {
+	printf("      ;`-';           Store or Retrieve an mp3           ;`-';");
+	pspDebugScreenSetXY(0, 27);
+	printf("      ;.-.;            File from flash memory            ;.-.;");
+	pspDebugScreenSetXY(0, 28);
+	printf("      ;`-'; Press 'X' to read MUSIC/Song.mp3 from flash0 ;`-';");
+	pspDebugScreenSetXY(0, 29);
+	printf("      ;.-.; Press 'O' to write MUSIC/Song.mp3 to flash0  ;.-.;");
+	pspDebugScreenSetXY(0, 30);
+	printf("      ;`-';      Not tested with file over 3.6 Mb!!!     ;`-';");
+		}
+		if (art == 0) {
+	printf("      ;`-';  ");
+		if (settings[0x64] == 0x31) {
+		printf("                  CLASSIC   ");
+		}
+		if (settings[0x64] == 0x32) {
+		printf("                  VIOLET    ");
+		}
+		if (settings[0x64] == 0x33) {
+		printf("                 METALLIC   ");
+		}
+		if (settings[0x64] == 0x34) {
+		printf("                   GREY     ");
+		}
+		if (settings[0x64] == 0x35) {
+		printf("                  ORANGE    ");
+		}
+		if (settings[0x64] == 0x36) {
+		printf("             VIOLET / YELLOW");
+		}
+		if (settings[0x64] == 0x37) {
+		printf("                   SKY      ");
+		}
+		if (settings[0x64] == 0x38) {
+		printf("                   SEA      ");
+		}
+		if (settings[0x64] == 0x39) {
+		printf("                 MILITARY   ");
+		}
+	printf("                ;`-';");
+	pspDebugScreenSetXY(0, 27);
+	printf("      ;.-.;     Change the X-Flash Menu colour theme,    ;.-.;");
+	pspDebugScreenSetXY(0, 28);
+	printf("      ;`-';     or save it to be used for next time.     ;`-';");
+	pspDebugScreenSetXY(0, 29);
+	printf("      ;.-.;     Press 'X' to save the current theme.     ;.-.;");
+	pspDebugScreenSetXY(0, 30);
+	printf("      ;`-';                                              ;`-';");
+
+		}
+	}
+
+	if (menu == 10) {
+	printf("      ;`-';              Ph0r th3 R331 Phr34X            ;`-';");
+	pspDebugScreenSetXY(0, 27);
+	printf("      ;.-.;         4 R3313 Phin3 Phirmw4r3 Phl45h       ;.-.;");
+	pspDebugScreenSetXY(0, 28);
+	printf("      ;`-';               83 4 1337 H4x0r!   (X)         ;`-';");
+	pspDebugScreenSetXY(0, 29);
+	printf("      ;.-.;                    0r n07        (O)         ;.-.;");
+	pspDebugScreenSetXY(0, 30);
+	printf("      ;`-';  Ph145h ri735 r v3rifi3d ph0r 7hi5 0p3r47i0n ;`-';");
+	}
+	pspDebugScreenSetXY(0, 31);
+	printf("      ;.-.;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;.-.;");
+	pspDebugScreenSetTextColor(colord);
+}
+
+void print_optionf() {
+	printf("      ;`-'; Replace the standard monthly menu background ;`-';");
+	pspDebugScreenSetXY(0, 27);
+	printf("      ;.-.; with a new background for the selected month.;.-.;");
+	pspDebugScreenSetXY(0, 28);
+	printf("      ;`-';                                              ;`-';");
+	pspDebugScreenSetXY(0, 29);
+	printf("      ;.-.;   Press the Circle button to restore the     ;.-.;");
+	pspDebugScreenSetXY(0, 30);
+	printf("      ;`-'; original background for the selected month.  ;`-';");
+}
+
+void print_message() {
+	pspDebugScreenInit();
+	pspDebugScreenSetBackColor(0x00FFFFFF); //white
+	sceDisplayWaitVblankStart();
+	pspDebugScreenInit();
+	pspDebugScreenSetBackColor(0x00000000);
+	pspDebugScreenSetTextColor(0x00EFDDCA);
+	sceDisplayWaitVblankStart();
+	pspDebugScreenInit();
+	pspDebugScreenSetBackColor(0x00000000);
+	pspDebugScreenSetTextColor(0x00EFDDCA);
+	print_header();
+	print_menu();
+
+	int m = 0;
+	pspDebugScreenSetXY(0, 25);
+	pspDebugScreenSetTextColor(colorb); // Blueish for header or footer
+	printf("      ;.-.;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;.-.;");
+	pspDebugScreenSetXY(0, 26);
+	printf("      ;`-';                                              ;`-';");
+	pspDebugScreenSetXY(0, 27);
+	printf("      ;.-.;                                              ;.-.;");
+
+	if (exist == 1) {
+	pspDebugScreenSetXY(0, 28);
+	printf("      ;`-';                ");
+	pspDebugScreenSetTextColor(colord);
+	printf("FLASH COMPLETE");
+	pspDebugScreenSetTextColor(colorb); // Blueish for header or footer
+	printf("                ;`-';");
+	}
+	else {
+	pspDebugScreenSetXY(0, 28);
+	printf("      ;`-';         ");
+	pspDebugScreenSetTextColor(colord);
+	printf("SOURCE FILE DOES NOT EXIST");
+	pspDebugScreenSetTextColor(colorb); // Blueish for header or footer
+	printf("          ;`-';");
+	}
+
+	pspDebugScreenSetXY(0, 29);
+	printf("      ;.-.;                                              ;.-.;");
+	pspDebugScreenSetXY(0, 30);
+	printf("      ;`-';                                              ;`-';");
+	pspDebugScreenSetXY(0, 31);
+	printf("      ;.-.;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;.-.;");
+	pspDebugScreenSetTextColor(colord);
+
+	for(m=0; m<110; m++) {
+	sceDisplayWaitVblankStart();
+	}
+	print_footer();
+}
+
+void print_regmessage() {
+	pspDebugScreenInit();
+	pspDebugScreenSetBackColor(0x00FFFFFF); //white
+	sceDisplayWaitVblankStart();
+	pspDebugScreenInit();
+	pspDebugScreenSetBackColor(0x00000000);
+	pspDebugScreenSetTextColor(0x00EFDDCA);
+	sceDisplayWaitVblankStart();
+	pspDebugScreenInit();
+	pspDebugScreenSetBackColor(0x00000000);
+	pspDebugScreenSetTextColor(0x00EFDDCA);
+	print_header();
+	print_menu();
+
+	int q = 0;
+	pspDebugScreenSetXY(0, 25);
+	pspDebugScreenSetTextColor(colorb); // Blueish for header or footer
+	printf("      ;.-.;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;.-.;");
+	pspDebugScreenSetXY(0, 26);
+
+	printf("      ;`-';                                              ;`-';");
+	pspDebugScreenSetXY(0, 27);
+	printf("      ;.-.;                                              ;.-.;");
+
+	pspDebugScreenSetXY(0, 28);
+	printf("      ;`-';            ");
+	pspDebugScreenSetTextColor(colord);
+	printf("REGISTRY BACKUP COMPLETE");
+	pspDebugScreenSetTextColor(colorb); // Blueish for header or footer
+	printf("          ;`-';");
+
+	pspDebugScreenSetXY(0, 29);
+	printf("      ;.-.;                                              ;.-.;");
+	pspDebugScreenSetXY(0, 30);
+	printf("      ;`-';                                              ;`-';");
+	pspDebugScreenSetXY(0, 31);
+	printf("      ;.-.;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;.-.;");
+	pspDebugScreenSetTextColor(colord);
+
+	for(q=0; q<110; q++) {
+	sceDisplayWaitVblankStart();
+	}
+	print_footer();
+}
+
+void print_regrestore() {
+	pspDebugScreenInit();
+	pspDebugScreenSetBackColor(0x00FFFFFF); //white
+	sceDisplayWaitVblankStart();
+	pspDebugScreenInit();
+	pspDebugScreenSetBackColor(0x00000000);
+	pspDebugScreenSetTextColor(0x00EFDDCA);
+	sceDisplayWaitVblankStart();
+	pspDebugScreenInit();
+	pspDebugScreenSetBackColor(0x00000000);
+	pspDebugScreenSetTextColor(0x00EFDDCA);
+	print_header();
+	print_menu();
+
+	int r = 0;
+	pspDebugScreenSetXY(0, 25);
+	pspDebugScreenSetTextColor(colorb); // Blueish for header or footer
+	printf("      ;.-.;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;.-.;");
+	pspDebugScreenSetXY(0, 26);
+
+	printf("      ;`-';                                              ;`-';");
+	pspDebugScreenSetXY(0, 27);
+	printf("      ;.-.;                                              ;.-.;");
+
+
+	if (exist == 0) {
+	pspDebugScreenSetXY(0, 28);
+	printf("      ;`-';         ");
+	pspDebugScreenSetTextColor(colord);
+	printf("PERFORM REGISTRY BACKUP FIRST");
+	pspDebugScreenSetTextColor(colorb); // Blueish for header or footer
+	printf("        ;`-';");
+	}
+	else {
+	pspDebugScreenSetXY(0, 28);
+	printf("      ;`-';           ");
+	pspDebugScreenSetTextColor(colord);
+	printf("REGISTRY RESTORE COMPLETE");
+	pspDebugScreenSetTextColor(colorb); // Blueish for header or footer
+	printf("          ;`-';");
+	}
+
+	pspDebugScreenSetXY(0, 29);
+	printf("      ;.-.;                                              ;.-.;");
+	pspDebugScreenSetXY(0, 30);
+	printf("      ;`-';                                              ;`-';");
+	pspDebugScreenSetXY(0, 31);
+	printf("      ;.-.;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;.-.;");
+	pspDebugScreenSetTextColor(colord);
+
+	for(r=0; r<110; r++) {
+	sceDisplayWaitVblankStart();
+	}
+	print_footer();
+}
+
+void print_blankfooter() {
+	print_header();
+//	print_menu();
+	print_justfooter();
+	}
+
+void print_justfooter() {
+	pspDebugScreenSetXY(0, 25);
+	pspDebugScreenSetTextColor(colorb); // Blueish for header or footer
+//	pspDebugScreenSetTextColor(0x00330099);//purple(aqua compliment)
+	printf("      ;.-.;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;.-.;");
+	pspDebugScreenSetXY(0, 26);
+	printf("      ;`-';                                              ;`-';");
+	pspDebugScreenSetXY(0, 27);
+	printf("      ;.-.;                                              ;.-.;");
+	pspDebugScreenSetXY(0, 28);
+	printf("      ;`-';                                              ;`-';");
+	pspDebugScreenSetXY(0, 29);
+	printf("      ;.-.;                                              ;.-.;");
+	pspDebugScreenSetXY(0, 30);
+	printf("      ;`-';                                              ;`-';");
+	pspDebugScreenSetXY(0, 31);
+	printf("      ;.-.;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;.-.;");
+	pspDebugScreenSetTextColor(colord);
+}
+
+void print_header() {
+	pspDebugScreenSetBackColor(0x00000000);
+	pspDebugScreenSetTextColor(color); // Blueish for header/footer
+	pspDebugScreenSetXY(0, 1);
+	printf("      ;");
+	pspDebugScreenSetXY(0, 2);
+	printf("      ;`-',");
+	pspDebugScreenSetXY(0, 3);
+	printf("      ;.-.;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;.-.;");
+	pspDebugScreenSetXY(0, 4);
+	printf("      ;`-';    /|    /|                                  ;`-';");
+	if (menu == 10) {
+	pspDebugScreenSetXY(0, 5);
+	printf("      ;.-.;   //|/''/''/         ><-Ph145h V9d           ;.-.;");
+	}
+	else {
+	pspDebugScreenSetXY(0, 5);
+	printf("      ;.-.;   //|/''/''/          ><-Flash V9d           ;.-.;");
+	}
+	pspDebugScreenSetXY(0, 6);
+	printf("      ;`-';  //''||' ||                                  ;`-';");
+	if (menu == 10) {
+	pspDebugScreenSetXY(0, 7);
+	printf("      ;.-.; |/   |/  |/    1457 upd473:  2nd May'06      ;.-.;");
+	}
+	else {
+	pspDebugScreenSetXY(0, 7);
+	printf("      ;.-.; |/   |/  |/    Last update:  2nd May'06      ;.-.;");
+	}
+	pspDebugScreenSetXY(0, 8);
+	printf("      ;`-';                                              ;`-';");
+	pspDebugScreenSetXY(0, 9);
+	printf("      ;.-.;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;.-.;");
+
+
+	pspDebugScreenSetTextColor(0x00EEEEEE);
+	pspDebugScreenSetXY(10, 1);
+	if (test == 0) {
+	printf("                                        ");
+	}
+	else {
+	printf("              *** TEST MODE IS ON ***  ");
+	}
+	pspDebugScreenSetTextColor(color);
+
+}
+
+void increment_month() {
+	month ++;
+	if (month == 16) {
+	month = 1;
+	}
+}
+
+void decrement_month() {
+	month --;
+	if (month == 0) {
+	month = 15;
+	}
+}
+
+// read version.txt to RAM
+
+void read_to_ram() {
+	int fd;
+
+	fd = sceIoOpen("flash0:/vsh/etc/version.txt", PSP_O_RDONLY, 0777);
+	sceIoRead(fd,data,133);
+	sceIoClose(fd);
+}
+
+// read index.dat to RAM
+
+void verify_index() {
+	int fdb;
+	int vfy;
+	int cnt;
+	int vfa;
+	int vfb;
+	int vfc;
+	int vfd;
+	int vfe;
+	int vff;
+	int vfg;
+	int vfh;
+	int vfi;
+
+	fdb = sceIoOpen("flash0:/vsh/etc/index.dat", PSP_O_RDONLY, 0777);
+	sceIoRead(fdb,datab,133);
+	sceIoClose(fdb);
+
+	verify = 0;
+	for(vfy=0; vfy<134; vfy++) {
+
+			for(cnt=0; cnt<1; cnt++) {
+			sceDisplayWaitVblankStart();
+			print_blankfooter();
+			pspDebugScreenSetTextColor(colord);
+			pspDebugScreenSetXY(18, 28);
+			printf("       VERIFY: ");
+			printf("%c",data[vfy]);
+
+			vfa = vfy + 1;
+			printf("%c",data[vfa]);
+			vfb = vfy + 2;
+			printf("%c",data[vfb]);
+			vfc = vfy + 3;
+			printf("%c",data[vfc]);
+			vfd = vfy + 4;
+			printf("%c",data[vfd]);
+			vfe = vfy + 5;
+			printf("%c",data[vfe]);
+			vff = vfy + 6;
+			printf("%c",data[vff]);
+			vfg = vfy + 7;
+			printf("%c",data[vfg]);
+			vfh = vfy + 8;
+			printf("%c",data[vfh]);
+			vfi = vfy + 9;
+			printf("%c",data[vfi]);
+	pspDebugScreenSetTextColor(colorb); // Blueish for header or footer
+//	pspDebugScreenSetTextColor(0x00330099);//purple(aqua compliment)
+	pspDebugScreenSetXY(0, 29);
+	printf("      ;.-.;                                              ;.-.;");
+			}
+		if (data[vfy] != datab[vfy]) {
+		verify = 1;
+		}
+	}
+
+	if (verify == 1) {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("      VERIFY FAILED! ");
+	fails ++; // increment value for number of verify fails.
+
+	if (fails < 3) {
+		for(ixt=0; ixt<170; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		fdo = sceIoOpen("flash0:/vsh/etc/index.dat", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		sceIoWrite(fdo,data,133);
+		sceIoClose(fdo);
+		pspDebugScreenSetXY(18, 28);
+		printf("          AUTO RETRY           ");
+		for(ixt=0; ixt<110; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		verify_index();
+	}
+
+	}
+
+	else {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("       VERIFY PASSED ");
+	}
+
+
+	for(cnt=0; cnt<110; cnt++) {
+	sceDisplayWaitVblankStart();
+	}
+exist = 1;
+}
+
+void increment_vers() {
+
+data[cpd] ++;
+	if (data[cpd] == 58) {
+	data [cpd] = 48;
+	data [cpc] ++;
+	}
+if (data[cpc] == 58) {
+data [cpc] = 48;
+data [cpa] ++;
+}
+if (data[cpa] == 58) {
+data [cpa] = 49;
+}
+}
+
+void decrement_vers() {
+
+data[cpd] --;
+	if (data[cpd] == 47) {
+	data [cpd] = 57;
+	data [cpc] --;
+	}
+if (data[cpc] == 47) {
+data [cpc] = 57;
+data [cpa] --;
+}
+if (data[cpa] == 48) {
+data [cpa] = 57;
+}
+}
+
+// read sysconf_plugin.rco to RAM, and check for Version 13.37 Hack
+
+void read_sysconf() {
+	int fdx;
+
+	fdx = sceIoOpen("flash0:/vsh/resource/sysconf_plugin.rco", PSP_O_RDONLY, 0777);
+	sceIoRead(fdx,syscon,313628);
+	sceIoClose(fdx);
+
+	chkk = 0;
+	if (syscon[130732] != 49) {
+	chkk = 1;
+	}
+
+	}
+
+void en1337() {
+	int fdh;
+	data[cpa] = 51; // set menu default version tricker value 3.37
+	data[cpc] = 51;
+	data[cpd] = 55;
+
+	syscon[130732] = 49;//1 English
+	syscon[130733] = 0;//
+	syscon[130734] = 37;//%
+	syscon[130735] = 0;//
+	syscon[130736] = 49;//1
+
+	syscon[143224] = 49;//1 French
+	syscon[143225] = 0;//
+	syscon[143226] = 37;//%
+	syscon[143227] = 0;//
+	syscon[143228] = 49;//1
+
+	syscon[156380] = 49;//1 German
+	syscon[156381] = 0;//
+	syscon[156382] = 37;//%
+	syscon[156383] = 0;//
+	syscon[156384] = 49;//1
+
+
+	fdh = sceIoOpen("flash0:/vsh/resource/sysconf_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(fdh,syscon,313628);
+	sceIoClose(fdh);
+}
+
+void de1337() {
+	int fdg;
+
+	data[cpa] = 49; // set menu default version tricker value 1.50
+	data[cpc] = 53;
+	data[cpd] = 48;
+
+	syscon[130732] = 37;//% English
+	syscon[130733] = 0;//
+	syscon[130734] = 49;//1
+	syscon[130735] = 0;//
+	syscon[130736] = 0;//
+
+	syscon[143224] = 37;//% French
+	syscon[143225] = 0;//
+	syscon[143226] = 49;//1
+	syscon[143227] = 0;//
+	syscon[143228] = 0;//
+
+	syscon[156380] = 37;//% German
+	syscon[156381] = 0;//
+	syscon[156382] = 49;//1
+	syscon[156383] = 0;//
+	syscon[156384] = 0;//
+
+	fdg = sceIoOpen("flash0:/vsh/resource/sysconf_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(fdg,syscon,313628);
+	sceIoClose(fdg);
+}
+
+// re- read sysconf_plugin.rco to RAM for verify
+
+void verify_sysconf() {
+	int fxb;
+	int vhy;
+	int xcnt;
+
+
+
+	fxb = sceIoOpen("flash0:/vsh/resource/sysconf_plugin.rco", PSP_O_RDONLY, 0777);
+	sceIoRead(fxb,vsys,313628);
+	sceIoClose(fxb);
+
+	verify = 0;
+	for(vhy=0; vhy<313628; vhy++) {
+		if (syscon[vhy] != vsys[vhy]) {
+		verify = 1;
+		}
+	}
+
+	if (verify == 1) {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY FAILED! ");
+	fails ++; // increment value for number of verify fails.
+
+	if (fails < 3) {
+		for(ixt=0; ixt<170; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		fdo = sceIoOpen("flash0:/vsh/resource/sysconf_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		sceIoWrite(fdo,syscon,313628);
+		sceIoClose(fdo);
+		pspDebugScreenSetXY(18, 28);
+		printf("          AUTO RETRY           ");
+		for(ixt=0; ixt<110; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		verify_sysconf();
+	}
+
+	}
+
+	else {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY PASSED ");
+	}
+
+
+	for(xcnt=0; xcnt<110; xcnt++) {
+	sceDisplayWaitVblankStart();
+	}
+exist = 1;
+}
+
+//  Read system_plugin_bg.rco
+void read_sysbg() {
+
+	int xdx;
+
+	xdx = sceIoOpen("flash0:/vsh/resource/system_plugin_bg.rco", PSP_O_RDONLY, 0777);
+	sceIoRead(xdx,sysbg,10776);
+	sceIoClose(xdx);
+
+	wave = 0;
+	if (sysbg[1606] == 55) {
+	wave = 1;
+	}
+}
+
+void toggle_wave() {
+	int xxnt;
+	int fxx;
+
+	if (wave == 1) {
+	sysbg[1606] = 53;// Apply Wave Effect
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("       APPLY WAVE EFFECT ");
+
+	}
+	else {
+	sysbg[1606] = 55;// Disable Wave Effect
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("      DISABLE WAVE EFFECT ");
+
+	}
+
+	for(xxnt=0; xxnt<110; xxnt++) {
+	sceDisplayWaitVblankStart();
+	}
+
+
+	fxx = sceIoOpen("flash0:/vsh/resource/system_plugin_bg.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(fxx,sysbg,10776);
+	sceIoClose(fxx);
+}
+
+void verify_sysbg() {
+	int fxmm;
+	int vxs;
+	int xcx;
+
+	fxmm = sceIoOpen("flash0:/vsh/resource/system_plugin_bg.rco", PSP_O_RDONLY, 0777);
+	sceIoRead(fxmm,vbg,10776);
+	sceIoClose(fxmm);
+
+	verify = 0;
+	for(vxs=0; vxs<10777; vxs++) {
+		if (sysbg[vxs] != vbg[vxs]) {
+		verify = 1;
+		}
+	}
+
+
+	if (verify == 1) {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY FAILED! ");
+	fails ++; // increment value for number of verify fails.
+
+	if (fails < 3) {
+		for(ixt=0; ixt<170; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		fdo = sceIoOpen("flash0:/vsh/resource/system_plugin_bg.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		sceIoWrite(fdo,sysbg,10776);
+		sceIoClose(fdo);
+		pspDebugScreenSetXY(18, 28);
+		printf("          AUTO RETRY           ");
+		for(ixt=0; ixt<110; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		verify_sysbg();
+	}
+
+	}
+
+	else {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY PASSED ");
+	}
+
+
+	for(xcx=0; xcx<110; xcx++) {
+	sceDisplayWaitVblankStart();
+	}
+exist = 1;
+}
+
+// Read update_plugin.rco to RAM
+void read_update() {
+	int fd9;
+
+	fd9 = sceIoOpen("flash0:/vsh/resource/update_plugin.rco", PSP_O_RDONLY, 0777);		// read update_plugin.rco to RAM
+	sceIoRead(fd9,update,49404);
+	sceIoClose(fd9);
+
+	nuon = 1;
+	if (update[0] == 00) {
+	nuon = 0;
+	}
+}
+
+void toggle_update() {
+	int xxnu;
+	int nxx;
+
+	if (nuon == 1) {
+	update[0] = 0x00;// Enable Network Update
+	update[1] = 0x50;//
+	update[2] = 0x52;// 
+	update[3] = 0x46;// 
+	update[4] = 0x71;// 
+	update[5] = 0x00;//
+	update[6] = 0x00;// 
+	update[7] = 0x00;// 
+	update[8] = 0x00;// 
+	update[9] = 0x00;//
+ 	update[10] = 0x00;//
+	update[11] = 0x00;//
+	update[12] = 0x00;//
+	update[13] = 0x00;//
+	update[14] = 0x00;//
+	update[15] = 0x00;//
+	update[16] = 0xA4;//
+	update[17] = 0x00;//
+	update[18] = 0x00;//
+	update[19] = 0x00;//
+	update[24] = 0x28;//
+	update[25] = 0x01;//
+	update[26] = 0x00;//
+	update[27] = 0x00;//
+	update[36] = 0xCC;//
+	update[37] = 0x00;//
+	update[38] = 0x00;//
+	update[39] = 0x00;//
+	update[48] = 0xE0;//
+	update[49] = 0x13;//
+ 	update[50] = 0x00;//
+	update[51] = 0x00;//
+	update[56] = 0x80;//
+	update[57] = 0x24;//
+	update[58] = 0x00;//
+	update[59] = 0x00;//
+ 	update[60] = 0x80;//
+	update[61] = 0x8D;//
+	update[62] = 0x00;//
+	update[63] = 0x00;//
+	update[64] = 0x00;//
+	update[65] = 0xB2;//
+	update[66] = 0x00;//
+	update[67] = 0x00;//
+	update[68] = 0xEC;//
+	update[69] = 0x05;//
+ 	update[70] = 0x00;//
+	update[71] = 0x00;//
+	update[72] = 0xEC;//
+	update[73] = 0xB7;//
+	update[74] = 0x00;//
+	update[75] = 0x00;//
+	update[76] = 0x40;//
+	update[77] = 0x01;//
+	update[78] = 0x00;//
+	update[79] = 0x00;//
+ 	update[80] = 0xB4;//
+	update[81] = 0x1C;//
+	update[82] = 0x00;//
+	update[83] = 0x00;//
+	update[84] = 0x80;//
+	update[85] = 0x07;//
+	update[86] = 0x00;//
+	update[87] = 0x00;//
+	update[88] = 0x34;//
+	update[89] = 0x24;//
+	update[90] = 0x00;//
+	update[91] = 0x00;//
+	update[92] = 0x08;//
+	update[93] = 0x00;//
+	update[94] = 0x00;//
+	update[95] = 0x00;//
+	update[100] = 0x00;// 
+	update[101] = 0x00;// 
+	update[102] = 0x00;// 
+	update[103] = 0x00;// 
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("      ENABLE NETWORK UPDATE ");
+	txsw = 0;
+	}
+	else {
+	update[0] = 0xFF;// Disable Network Update
+	update[1] = 0xFF;//
+	update[2] = 0xFF;// 
+	update[3] = 0xFF;// 
+	update[4] = 0xFF;// 
+	update[5] = 0xFF;//
+	update[6] = 0xFF;// 
+	update[7] = 0xFF;// 
+	update[8] = 0xFF;// 
+	update[9] = 0xFF;// 
+ 	update[10] = 0xFF;//
+	update[11] = 0xFF;//
+	update[12] = 0xFF;//
+	update[13] = 0xFF;//
+	update[14] = 0xFF;//
+	update[15] = 0xFF;//
+	update[16] = 0xFF;//
+	update[17] = 0xFF;//
+	update[18] = 0xFF;//
+	update[19] = 0xFF;//
+	update[24] = 0xFF;//
+	update[25] = 0xFF;//
+	update[26] = 0xFF;//
+	update[27] = 0xFF;//
+	update[36] = 0xFF;//
+	update[37] = 0xFF;//
+	update[38] = 0xFF;//
+	update[39] = 0xFF;//
+	update[48] = 0xFF;//
+	update[49] = 0xFF;//
+ 	update[50] = 0xFF;//
+	update[51] = 0xFF;//
+	update[56] = 0xFF;//
+	update[57] = 0xFF;//
+	update[58] = 0xFF;//
+	update[59] = 0xFF;//
+ 	update[60] = 0xFF;//
+	update[61] = 0xFF;//
+	update[62] = 0xFF;//
+	update[63] = 0xFF;//
+	update[64] = 0xFF;//
+	update[65] = 0xFF;//
+	update[66] = 0xFF;//
+	update[67] = 0xFF;//
+	update[68] = 0xFF;//
+	update[69] = 0xFF;//
+ 	update[70] = 0xFF;//
+	update[71] = 0xFF;//
+	update[72] = 0xFF;//
+	update[73] = 0xFF;//
+	update[74] = 0xFF;//
+	update[75] = 0xFF;//
+	update[76] = 0xFF;//
+	update[77] = 0xFF;//
+	update[78] = 0xFF;//
+	update[79] = 0xFF;//
+ 	update[80] = 0xFF;//
+	update[81] = 0xFF;//
+	update[82] = 0xFF;//
+	update[83] = 0xFF;//
+	update[84] = 0xFF;//
+	update[85] = 0xFF;//
+	update[86] = 0xFF;//
+	update[87] = 0xFF;//
+	update[88] = 0xFF;//
+	update[89] = 0xFF;//
+	update[90] = 0xFF;//
+	update[91] = 0xFF;//
+	update[92] = 0xFF;//
+	update[93] = 0xFF;//
+	update[94] = 0xFF;//
+	update[95] = 0xFF;//
+	update[100] = 0xFF;// 
+	update[101] = 0xFF;// 
+	update[102] = 0xFF;// 
+	update[103] = 0xFF;// 
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("      DISABLE NETWORK UPDATE ");
+	txsw = 1;
+	}
+
+	for(xxnu=0; xxnu<110; xxnu++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	nxx = sceIoOpen("flash0:/vsh/resource/update_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(nxx,update,49404);
+	sceIoClose(nxx);
+}
+
+void verify_update() {
+	int fxnu;
+	int nus;
+	int nux;
+
+	fxnu = sceIoOpen("flash0:/vsh/resource/update_plugin.rco", PSP_O_RDONLY, 0777);
+	sceIoRead(fxnu,vupd,49404);
+	sceIoClose(fxnu);
+
+	verify = 0;
+	for(nus=0; nus<49405; nus++) {
+		if (update[nus] != vupd[nus]) {
+		verify = 1;
+		}
+	}
+
+	if (verify == 1) {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY FAILED! ");
+	fails ++; // increment value for number of verify fails.
+
+	if (fails < 3) {
+		for(ixt=0; ixt<170; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		fdo = sceIoOpen("flash0:/vsh/resource/update_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		sceIoWrite(fdo,update,49404);
+		sceIoClose(fdo);
+		pspDebugScreenSetXY(18, 28);
+		printf("          AUTO RETRY           ");
+		for(ixt=0; ixt<110; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		verify_update();
+	}
+
+	}
+
+	else {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY PASSED ");
+	}
+
+	for(nux=0; nux<110; nux++) {
+	sceDisplayWaitVblankStart();
+	}
+exist = 1;
+}
+
+//  Read topmenu_plugin.rco
+void read_topmenu() {
+	int xtm;
+	xtm = sceIoOpen("flash0:/vsh/resource/topmenu_plugin.rco", PSP_O_RDONLY, 0777);
+	sceIoRead(xtm,opening,230856);
+	sceIoClose(xtm);
+}
+
+void txtenabled() {
+	int xnue;
+
+	topmenu[16904] = 0x4E;// 
+	topmenu[16905] = 0x00;// 
+	topmenu[16906] = 0x65;// 
+	topmenu[16907] = 0x00;// 
+	topmenu[16908] = 0x74;// 
+	topmenu[16909] = 0x00;// 
+	topmenu[16910] = 0x77;// 
+	topmenu[16911] = 0x00;// 
+	topmenu[16912] = 0x6F;// 
+	topmenu[16913] = 0x00;// 
+	topmenu[16914] = 0x72;// 
+	topmenu[16915] = 0x00;// 
+	topmenu[16916] = 0x6B;// 
+	topmenu[16917] = 0x00;// 
+	topmenu[16918] = 0x20;// 
+	topmenu[16919] = 0x00;// 
+	topmenu[16920] = 0x55;// 
+	topmenu[16921] = 0x00;// 
+	topmenu[16922] = 0x70;// 
+	topmenu[16923] = 0x00;// 
+	topmenu[16924] = 0x64;// 
+	topmenu[16925] = 0x00;// 
+	topmenu[16926] = 0x61;// 
+	topmenu[16927] = 0x00;// 
+	topmenu[16928] = 0x74;// 
+	topmenu[16929] = 0x00;// 
+	topmenu[16930] = 0x65;// 
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("   APPLY 'Network Update' LABEL ");
+
+	for(xnue=0; xnue<110; xnue++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	int dhj;
+	int dtm;
+	dtm = sceIoOpen("flash0:/vsh/resource/topmenu_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(dtm,topmenu,230856);
+	sceIoClose(dtm);
+
+	for(dhj=0; dhj<100; dhj++) {
+	sceDisplayWaitVblankStart();
+	}
+}
+
+void txtdisabled() {
+	int xnud;
+
+	topmenu[16904] = 0x44;// 
+	topmenu[16905] = 0x00;// 
+	topmenu[16906] = 0x69;// 
+	topmenu[16907] = 0x00;// 
+	topmenu[16908] = 0x73;// 
+	topmenu[16909] = 0x00;// 
+	topmenu[16910] = 0x61;// 
+	topmenu[16911] = 0x00;// 
+	topmenu[16912] = 0x62;// 
+	topmenu[16913] = 0x00;// 
+	topmenu[16914] = 0x6C;// 
+	topmenu[16915] = 0x00;// 
+	topmenu[16916] = 0x65;// 
+	topmenu[16917] = 0x00;// 
+	topmenu[16918] = 0x64;// 
+	topmenu[16919] = 0x00;// 
+	topmenu[16920] = 0x20;// 
+	topmenu[16921] = 0x00;// 
+	topmenu[16922] = 0x20;// 
+	topmenu[16923] = 0x00;// 
+	topmenu[16924] = 0x20;// 
+	topmenu[16925] = 0x00;// 
+	topmenu[16926] = 0x20;// 
+	topmenu[16927] = 0x00;// 
+	topmenu[16928] = 0x20;// 
+	topmenu[16929] = 0x00;//
+	topmenu[16930] = 0x20;// 
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("     APPLY 'Disabled' LABEL ");
+
+	for(xnud=0; xnud<110; xnud++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	int vhj;
+	int vtm;
+	vtm = sceIoOpen("flash0:/vsh/resource/topmenu_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(vtm,topmenu,230856);
+	sceIoClose(vtm);
+
+	for(vhj=0; vhj<100; vhj++) {
+	sceDisplayWaitVblankStart();
+	}
+}
+
+void verify_topmenu() {
+	int uhj;
+	int fxtv;
+	int tma;
+
+	fxtv = sceIoOpen("flash0:/vsh/resource/topmenu_plugin.rco", PSP_O_RDONLY, 0777);
+	sceIoRead(fxtv,vtop,230856);
+	sceIoClose(fxtv);
+
+	verify = 0;
+	for(tma=0; tma<230856; tma++) {
+		if (topmenu[tma] != vtop[tma]) {
+		verify = 1;
+		}
+	}
+
+	if (verify == 1) {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY FAILED! ");
+	fails ++; // increment value for number of verify fails.
+
+	if (fails < 3) {
+		for(ixt=0; ixt<170; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		fdo = sceIoOpen("flash0:/vsh/resource/topmenu_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		sceIoWrite(fdo,topmenu,230856);
+		sceIoClose(fdo);
+		pspDebugScreenSetXY(18, 28);
+		printf("          AUTO RETRY           ");
+		for(ixt=0; ixt<110; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		verify_topmenu();
+	}
+
+	}
+
+	else {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY PASSED ");
+	}
+
+	for(uhj=0; uhj<110; uhj++) {
+	sceDisplayWaitVblankStart();
+	}
+	exist = 1;
+}
+
+void txtgame() {
+	int xnod;
+	topmenu[16336] = 0x47;// G
+	topmenu[16337] = 0x00;// 
+	topmenu[16338] = 0x61;// a
+	topmenu[16339] = 0x00;// 
+	topmenu[16340] = 0x6D;// m
+	topmenu[16341] = 0x00;// 
+	topmenu[16342] = 0x65;// e
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("      APPLY 'Game' LABEL ");
+
+	for(xnod=0; xnod<110; xnod++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	int voj;
+	int vom;
+	vom = sceIoOpen("flash0:/vsh/resource/topmenu_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(vom,topmenu,230856);
+	sceIoClose(vom);
+
+	for(voj=0; voj<100; voj++) {
+	sceDisplayWaitVblankStart();
+	}
+}
+
+void txtcode() {
+	int xgod;
+	topmenu[16336] = 0x43;// C
+	topmenu[16337] = 0x00;// 
+	topmenu[16338] = 0x6F;// o
+	topmenu[16339] = 0x00;// 
+	topmenu[16340] = 0x64;// d
+	topmenu[16341] = 0x00;// 
+	topmenu[16342] = 0x65;// e
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("      APPLY 'Code' LABEL ");
+
+	for(xgod=0; xgod<110; xgod++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	int vog;
+	int gom;
+	gom = sceIoOpen("flash0:/vsh/resource/topmenu_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(gom,topmenu,230856);
+	sceIoClose(gom);
+
+	for(vog=0; vog<100; vog++) {
+	sceDisplayWaitVblankStart();
+	}
+}
+
+void txtexec() {
+	int xexe;
+	topmenu[16336] = 0x45;// E
+	topmenu[16337] = 0x00;// 
+	topmenu[16338] = 0x78;// x
+	topmenu[16339] = 0x00;// 
+	topmenu[16340] = 0x65;// e
+	topmenu[16341] = 0x00;// 
+	topmenu[16342] = 0x63;// c
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("      APPLY 'Exec' LABEL ");
+
+	for(xexe=0; xexe<110; xexe++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	int voa;
+	int goa;
+	goa = sceIoOpen("flash0:/vsh/resource/topmenu_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(goa,topmenu,230856);
+	sceIoClose(goa);
+
+	for(voa=0; voa<100; voa++) {
+	sceDisplayWaitVblankStart();
+	}
+}
+
+void increment_game() {
+	game ++;
+	mgam ++;
+	if (game == 10) {
+	game = 1;
+	mgam = 49;
+	}
+}
+
+void decrement_game() {
+	game --;
+	mgam --;
+	if (game == 0) {
+	game = 9;
+	mgam = 57;
+	}
+}
+
+void txtgamz() {
+	int xgmz;
+	topmenu[16336] = 0x47;// G
+	topmenu[16337] = 0x00;// 
+	topmenu[16338] = 0x61;// a
+	topmenu[16339] = 0x00;// 
+	topmenu[16340] = 0x6D;// m
+	topmenu[16341] = 0x00;// 
+	topmenu[16342] = 0x5A;// Z
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("      APPLY 'GamZ' LABEL ");
+
+	for(xgmz=0; xgmz<110; xgmz++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	int zgz;
+	int ggz;
+	ggz = sceIoOpen("flash0:/vsh/resource/topmenu_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(ggz,topmenu,230856);
+	sceIoClose(ggz);
+
+	for(zgz=0; zgz<100; zgz++) {
+	sceDisplayWaitVblankStart();
+	}
+}
+
+void txt1337() {
+	int x337;
+	topmenu[16336] = 0x31;// 1
+	topmenu[16337] = 0x00;// 
+	topmenu[16338] = 0x33;// 3
+	topmenu[16339] = 0x00;// 
+	topmenu[16340] = 0x33;// 3
+	topmenu[16341] = 0x00;// 
+	topmenu[16342] = 0x37;// 7
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("      APPLY '1337' LABEL ");
+
+	for(x337=0; x337<110; x337++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	int v37;
+	int g37;
+	g37 = sceIoOpen("flash0:/vsh/resource/topmenu_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(g37,topmenu,230856);
+	sceIoClose(g37);
+
+	for(v37=0; v37<100; v37++) {
+	sceDisplayWaitVblankStart();
+	}
+}
+
+void txtfilz() {
+	int xflz;
+	topmenu[16336] = 0x42;// B
+	topmenu[16337] = 0x00;// 
+	topmenu[16338] = 0x72;// r
+	topmenu[16339] = 0x00;// 
+	topmenu[16340] = 0x65;// e
+	topmenu[16341] = 0x00;// 
+	topmenu[16342] = 0x77;// w
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("      APPLY 'Brew' LABEL ");
+
+	for(xflz=0; xflz<110; xflz++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	int vfz;
+	int gfz;
+	gfz = sceIoOpen("flash0:/vsh/resource/topmenu_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(gfz,topmenu,230856);
+	sceIoClose(gfz);
+
+	for(vfz=0; vfz<100; vfz++) {
+	sceDisplayWaitVblankStart();
+	}
+}
+
+void txtapps() {
+	int xaps;
+	topmenu[16336] = 0x41;// A
+	topmenu[16337] = 0x00;// 
+	topmenu[16338] = 0x70;// p
+	topmenu[16339] = 0x00;// 
+	topmenu[16340] = 0x70;// p
+	topmenu[16341] = 0x00;// 
+	topmenu[16342] = 0x73;// s
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("      APPLY 'Apps' LABEL ");
+
+	for(xaps=0; xaps<110; xaps++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	int vap;
+	int sap;
+	sap = sceIoOpen("flash0:/vsh/resource/topmenu_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(sap,topmenu,230856);
+	sceIoClose(sap);
+
+	for(vap=0; vap<100; vap++) {
+	sceDisplayWaitVblankStart();
+	}
+}
+
+void txt64mz() {
+	int x64z;
+	topmenu[16336] = 0x36;// 6
+	topmenu[16337] = 0x00;// 
+	topmenu[16338] = 0x34;// 4
+	topmenu[16339] = 0x00;// 
+	topmenu[16340] = 0x4D;// M
+	topmenu[16341] = 0x00;// 
+	topmenu[16342] = 0x5A;// Z
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("      APPLY '64MZ' LABEL ");
+
+	for(x64z=0; x64z<110; x64z++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	int v64;
+	int s64;
+	s64 = sceIoOpen("flash0:/vsh/resource/topmenu_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(s64,topmenu,230856);
+	sceIoClose(s64);
+
+	for(v64=0; v64<100; v64++) {
+	sceDisplayWaitVblankStart();
+	}
+}
+
+void txti505() {
+	int x505;
+	topmenu[16336] = 0x69;// i
+	topmenu[16337] = 0x00;// 
+	topmenu[16338] = 0x35;// 5
+	topmenu[16339] = 0x00;// 
+	topmenu[16340] = 0x30;// 0
+	topmenu[16341] = 0x00;// 
+	topmenu[16342] = 0x35;// 5
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("      APPLY 'i505' LABEL ");
+
+	for(x505=0; x505<110; x505++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	int v05;
+	int s05;
+	s05 = sceIoOpen("flash0:/vsh/resource/topmenu_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(s05,topmenu,230856);
+	sceIoClose(s05);
+
+	for(v05=0; v05<100; v05++) {
+	sceDisplayWaitVblankStart();
+	}
+}
+
+void read_system() {
+	int xsp;
+
+	if (test == 0) {
+	xsp = sceIoOpen("flash0:/vsh/resource/system_plugin.rco", PSP_O_RDONLY, 0777);
+	}
+	else {
+	xsp = sceIoOpen("./Xflash/Dump/flash0/vsh/resource/system_plugin.rco", PSP_O_RDONLY, 0777);
+	}
+
+	sceIoRead(xsp,systp,94804);
+	sceIoClose(xsp);
+
+}
+
+void verify_system() {
+	int fxvs;
+	int vsa;
+	int xsv;
+
+	if (test == 0) {
+	fxvs = sceIoOpen("flash0:/vsh/resource/system_plugin.rco", PSP_O_RDONLY, 0777);
+	}
+	else {
+	fxvs = sceIoOpen("./Xflash/Dump/flash0/vsh/resource/system_plugin.rco", PSP_O_RDONLY, 0777);
+	}
+
+	sceIoRead(fxvs,systv,94804);
+	sceIoClose(fxvs);
+
+	verify = 0;
+	for(vsa=0; vsa<94805; vsa++) {
+		if (systp[vsa] != systv[vsa]) {
+		verify = 1;
+		}
+	}
+
+	if (verify == 1) {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY FAILED! ");
+	fails ++; // increment value for number of verify fails.
+
+	if (fails < 3) {
+		for(ixt=0; ixt<170; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		if (test == 0) {
+		fdo = sceIoOpen("flash0:/vsh/resource/system_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		}
+		else {
+		fdo = sceIoOpen("./Xflash/Dump/flash0/vsh/resource/system_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		}
+
+		sceIoWrite(fdo,systp,94804);
+		sceIoClose(fdo);
+		pspDebugScreenSetXY(18, 28);
+		printf("          AUTO RETRY           ");
+		for(ixt=0; ixt<110; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		verify_system();
+	}
+
+	}
+
+	else {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY PASSED ");
+	}
+
+
+	for(xsv=0; xsv<110; xsv++) {
+	sceDisplayWaitVblankStart();
+	}
+exist = 1;
+}
+
+void mod_error() {
+	int esnt;
+	int fes;
+	int vmd;
+	int vmi;
+
+	vmi = 0;
+	for(vmd=74532; vmd<94788; vmd++) {
+		systp[vmd] = errorm[vmi];
+		vmi ++;
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("    APPLY NEW XMB ERROR SOUND ");
+
+	for(esnt=0; esnt<110; esnt++) {
+	sceDisplayWaitVblankStart();
+	}
+
+
+	fes = sceIoOpen("flash0:/vsh/resource/system_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(fes,systp,94804);
+	sceIoClose(fes);
+}
+
+void org_error() {
+	int esno;
+	int feo;
+	int qmd;
+	int qmi;
+
+	qmi = 0;
+	for(qmd=74532; qmd<94788; qmd++) {
+		systp[qmd] = erroro[qmi];
+		qmi ++;
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("  APPLY ORIGINAL XMB ERROR SOUND ");
+
+	for(esno=0; esno<110; esno++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	if (test == 0) {
+	feo = sceIoOpen("flash0:/vsh/resource/system_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	}
+	else {
+	feo = sceIoOpen("./Xflash/Dump/flash0/vsh/resource/system_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	}
+
+	sceIoWrite(feo,systp,94804);
+	sceIoClose(feo);
+}
+
+void flh_error() {
+	int esfs;
+	int ifs;
+	int qfw;
+	int qfh;
+
+	qfh = 0;
+	for(qfw=74532; qfw<94788; qfw++) {
+
+
+	if (qfh < 8794) {
+		systp[qfw] = flush[qfh];	//check for end of shorter file
+		qfh ++;
+	}
+	else {
+		systp[qfw] = 0;			//pad end of file
+		qfh ++;
+	}
+
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("   APPLY FLUSH XMB ERROR SOUND ");
+
+	for(esfs=0; esfs<110; esfs++) {
+	sceDisplayWaitVblankStart();
+	}
+
+
+	ifs = sceIoOpen("flash0:/vsh/resource/system_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(ifs,systp,94804);
+	sceIoClose(ifs);
+}
+
+void doh_error() {
+	int edoh;
+	int ido;
+	int qdo;
+	int qjh;
+
+	qjh = 0;
+	for(qdo=74532; qdo<94788; qdo++) {
+
+
+	if (qjh < 5090) {
+		systp[qdo] = dooh[qjh];	//check for end of shorter file
+		qjh ++;
+	}
+	else {
+		systp[qdo] = 0;			//pad end of file
+		qjh ++;
+	}
+
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("    APPLY DOH! XMB ERROR SOUND  ");
+
+	for(edoh=0; edoh<110; edoh++) {
+	sceDisplayWaitVblankStart();
+	}
+
+
+	ido = sceIoOpen("flash0:/vsh/resource/system_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(ido,systp,94804);
+	sceIoClose(ido);
+}
+
+void increment_error() {
+	errs ++;
+	merr ++;
+	if (errs == 10) {
+	errs = 1;
+	merr = 49;
+	}
+}
+
+void decrement_error() {
+	errs --;
+	merr --;
+	if (errs == 0) {
+	errs = 9;
+	merr = 57;
+	}
+}
+
+void read_ltn0() {
+	int ltx;
+
+	ltx = sceIoOpen("./Xflash/Modified/ltn0.pgf", PSP_O_RDONLY, 0777);
+	sceIoRead(ltx,ltn0,10);
+	sceIoClose(ltx);
+
+	disq = 0;
+	if (ltn0[4] != 0x50) {  //Check for 'P' of "PGF file"
+	disq = 1;
+	}
+}
+
+void read_settings() {
+	int stg;
+
+	stg = sceIoOpen("./Xflash/Xflash/Theme.XF", PSP_O_RDONLY, 0777);
+	sceIoRead(stg,settings,0xB5);
+	sceIoClose(stg);
+}
+
+void apply_settings() {
+
+//	color = 0x00BBGGRR;
+
+	if (settings[0x64] == 0x31){ //Check for Old X-Flash
+	color = 0x00339900;
+	colorb = 0x00330099;
+	colorc = 0x00555555;
+	colord = 0x00FFFFFF;
+	}
+	if (settings[0x64] == 0x32){ //Check for Violet
+	color = 0x00330099;
+	colorb = 0x00330099;
+	colorc = 0x00666666;
+	colord = 0x00FFFFFF;
+	}
+	if (settings[0x64] == 0x33){ //Check for Metallic
+	color = 2109782;
+	colorb = 2109782;
+	colorc = 0x00333333;
+	colord = 0x00EFEFEF;
+	}
+	if (settings[0x64] == 0x34){ //Check for Future
+	color = 0x006F6F6F;
+	colorb = 0x006F6F6F;
+	colorc = 0x00333333;
+	colord = 0x00008D8F; //yellow?
+	}
+	if (settings[0x64] == 0x35){ //Check for Orange
+	color = 285887217;
+	colorb = 285887217;
+	colorc = 0x00333333;
+	colord = 0x00FCFCFC;
+	}
+	if (settings[0x64] == 0x36){ //Check for Violet / Yellow
+	color = 0x00330099;
+	colorb = 0x00330099;
+	colorc = 0x00333333;
+	colord = 0x00008D8F; //yellow?
+	}
+	if (settings[0x64] == 0x37){ //Check for Blue / Yellow
+	color = 0x00EE0C0C;
+	colorb = 0x00EE0C0C;
+	colorc = 0x00505050;
+	colord = 0x0022BDBF; //yellow?
+	}
+	if (settings[0x64] == 0x38){ //Check for Blue
+	color = 0x00FF4A4A;
+	colorb = 0x00FF4A4A;
+	colorc = 0x004F1515;
+	colord = 0x00FFDFDF;
+	}
+	if (settings[0x64] == 0x39){ //Check for Military
+	color = 0x00509373;
+	colorb = 0x00376028;
+	colorc = 0x00396744;
+	colord = 0x00E8E0E5;
+	}
+}
+
+void save_settings() {
+	int sstg;
+
+	sstg = sceIoOpen("./Xflash/Xflash/Theme.XF", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(sstg,settings,0xB5);
+	sceIoClose(sstg);
+}
+
+void read_bmp() {
+	int bmp;
+	bmp = sceIoOpen("./xflash/Modified/background.bmp", PSP_O_RDONLY, 0777);
+	sceIoRead(bmp,back,10);
+	sceIoClose(bmp);
+
+	disb = 0;
+	if (back[0] != 0x42) {  //Check for 'B' of "BMP file"
+	disb = 1;
+	}
+}
+
+void gameboottoram() {
+	int gbtr;
+	int gbk;
+	int qmo;
+
+	for(qmo=0; qmo<200704; qmo++) {
+		gbram[qmo] = gameboot[qmo];
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf(" APPLY ORIGINAL GAME BOOT MOVIE");
+
+	for(gbtr=0; gbtr<110; gbtr++) {
+	sceDisplayWaitVblankStart();
+	}
+
+
+	gbk = sceIoOpen("flash0:/vsh/resource/gameboot.pmf", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(gbk,gbram,200704);
+	sceIoClose(gbk);
+}
+
+void fonttoram() {
+	int fttr;
+	int ftk;
+	int qmy;
+
+	for(qmy=0; qmy<123896; qmy++) {
+		fntram[qmy] = font[qmy];
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("     APPLY ORIGINAL XMB FONT ");
+
+	for(fttr=0; fttr<110; fttr++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	ftk = sceIoOpen("flash0:/font/ltn0.pgf", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(ftk,fntram,123896);
+	sceIoClose(ftk);
+}
+
+void verify_gameboot() {
+	int ugb;
+	int fxgb;
+	int tpl;
+
+	fxgb = sceIoOpen("flash0:/vsh/resource/gameboot.pmf", PSP_O_RDONLY, 0777);
+	sceIoRead(fxgb,vgbram,200704);
+	sceIoClose(fxgb);
+
+	verify = 0;
+	for(tpl=0; tpl<200704; tpl++) {
+		if (gbram[tpl] != vgbram[tpl]) {
+		verify = 1;
+		}
+	}
+
+	if (verify == 1) {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY FAILED! ");
+	fails ++; // increment value for number of verify fails.
+
+	if (fails < 3) {
+		for(ixt=0; ixt<170; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		fdo = sceIoOpen("flash0:/vsh/resource/gameboot.pmf", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		sceIoWrite(fdo,gbram,200704);
+		sceIoClose(fdo);
+		pspDebugScreenSetXY(18, 28);
+		printf("          AUTO RETRY           ");
+		for(ixt=0; ixt<110; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		verify_gameboot();
+	}
+
+	}
+
+	else {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY PASSED ");
+	}
+
+	for(ugb=0; ugb<110; ugb++) {
+	sceDisplayWaitVblankStart();
+	}
+	exist = 1;
+}
+
+void verify_font() {
+	int uvf;
+	int fxvf;
+	int vpp;
+
+	fxvf = sceIoOpen("flash0:/font/ltn0.pgf", PSP_O_RDONLY, 0777);
+	sceIoRead(fxvf,vfntram,123896);
+	sceIoClose(fxvf);
+
+	verify = 0;
+	for(vpp=0; vpp<123896; vpp++) {
+		if (fntram[vpp] != vfntram[vpp]) {
+		verify = 1;
+		}
+	}
+
+	if (verify == 1) {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY FAILED! ");
+	fails ++; // increment value for number of verify fails.
+
+	if (fails < 3) {
+		for(ixt=0; ixt<170; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		fdo = sceIoOpen("flash0:/font/ltn0.pgf", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		sceIoWrite(fdo,fntram,123896);
+		sceIoClose(fdo);
+		pspDebugScreenSetXY(18, 28);
+		printf("          AUTO RETRY           ");
+		for(ixt=0; ixt<110; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		verify_font();
+	}
+
+	}
+
+	else {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY PASSED ");
+	}
+
+	for(uvf=0; uvf<110; uvf++) {
+	sceDisplayWaitVblankStart();
+	}
+	exist = 1;
+}
+
+void read_font_file() {
+	int ltff;
+	int ftxr;
+	int fte;
+
+	ltff = sceIoOpen("./Xflash/Modified/ltn0.pgf", PSP_O_RDONLY, 0777);
+	sceIoRead(ltff,fntram,123896);
+	sceIoClose(ltff);
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("      APPLY CUSTOM XMB FONT ");
+
+	for(ftxr=0; ftxr<110; ftxr++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	fte = sceIoOpen("flash0:/font/ltn0.pgf", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(fte,fntram,123896);
+	sceIoClose(fte);
+
+}
+
+// read opening_plugin.rco to RAM
+
+void read_opening() {
+	int optr;
+
+	if (test == 0) {
+	optr = sceIoOpen("flash0:/vsh/resource/opening_plugin.rco", PSP_O_RDONLY, 0777);
+	}
+	else {
+	optr = sceIoOpen("./Xflash/Dump/flash0/vsh/resource/opening_plugin.rco", PSP_O_RDONLY, 0777);
+	}
+
+	sceIoRead(optr,opening,254344);
+	sceIoClose(optr);
+}
+
+void verify_opening() {
+	int opy;
+	int fopx;
+	int opl;
+
+	if (test == 0) {
+	fopx = sceIoOpen("flash0:/vsh/resource/opening_plugin.rco", PSP_O_RDONLY, 0777);
+	}
+	else {
+	fopx = sceIoOpen("./Xflash/Dump/flash0/vsh/resource/opening_plugin.rco", PSP_O_RDONLY, 0777);
+	}
+
+	sceIoRead(fopx,vopening,254344);
+	sceIoClose(fopx);
+
+	verify = 0;
+	for(opl=0; opl<254344; opl++) {
+		if (opening[opl] != vopening[opl]) {
+		verify = 1;
+		}
+	}
+
+	if (verify == 1) {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("       VERIFY FAILED! ");
+	fails ++; // increment value for number of verify fails.
+
+	if (fails < 3) {
+		for(ixt=0; ixt<170; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+
+		if (test == 0) {
+		fdo = sceIoOpen("flash0:/vsh/resource/opening_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		}
+		else {
+		fdo = sceIoOpen("./Xflash/Dump/flash0/vsh/resource/opening_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		}
+
+		sceIoWrite(fdo,opening,254344);
+		sceIoClose(fdo);
+		pspDebugScreenSetXY(18, 28);
+		printf("          AUTO RETRY           ");
+		for(ixt=0; ixt<110; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		verify_opening();
+	}
+
+	}
+
+	else {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY PASSED ");
+	}
+
+	for(opy=0; opy<110; opy++) {
+	sceDisplayWaitVblankStart();
+	}
+	exist = 1;
+}
+
+void enwaveop() {
+	int dwop;
+	opening[236772] = 0x00; // remove wave from opening
+	opening[236773] = 0x00; // 
+	opening[236774] = 0x00; // 
+	opening[236775] = 0x00; // 
+	opening[236776] = 0x00; // 
+	opening[236777] = 0x00; // 
+	opening[236778] = 0x00; // 
+	opening[236779] = 0x00; // 
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("     REMOVE OPENING WAVE ");
+
+	for(dwop=0; dwop<110; dwop++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	int ote;
+	int ogw;
+	ogw = sceIoOpen("flash0:/vsh/resource/opening_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(ogw,opening,254344);
+	sceIoClose(ogw);
+
+	for(ote=0; ote<100; ote++) {
+	sceDisplayWaitVblankStart();
+	}
+}
+
+void dewaveop() {
+	int enop;
+	opening[236772] = 0x49; // restore wave in opening
+	opening[236773] = 0x05; // 
+	opening[236774] = 0x15; // 
+	opening[236775] = 0x24; // 
+	opening[236776] = 0x19; // 
+	opening[236777] = 0x00; // 
+	opening[236778] = 0x23; // 
+	opening[236779] = 0x8A; // 
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("     APPLY OPENING WAVE ");
+
+	for(enop=0; enop<110; enop++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	int otd;
+	int ogd;
+	ogd = sceIoOpen("flash0:/vsh/resource/opening_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(ogd,opening,254344);
+	sceIoClose(ogd);
+
+	for(otd=0; otd<100; otd++) {
+	sceDisplayWaitVblankStart();
+	}
+}
+
+void enbrandop() {
+	int dwap;
+
+	opening[32796] = 0xE2;// Restore branding
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("    RESTORE INTRO BRANDING ");
+
+	for(dwap=0; dwap<110; dwap++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	int oae;
+	int agw;
+	agw = sceIoOpen("flash0:/vsh/resource/opening_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(agw,opening,254344);
+	sceIoClose(agw);
+
+	for(oae=0; oae<100; oae++) {
+	sceDisplayWaitVblankStart();
+	}
+}
+
+void debrandop() {
+	int ebrp;
+
+	opening[32796] = 0x02;// Remove branding
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("    REMOVE INTRO BRANDING ");
+
+	for(ebrp=0; ebrp<110; ebrp++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	int obr;
+	int orb;
+	orb = sceIoOpen("flash0:/vsh/resource/opening_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(orb,opening,254344);
+	sceIoClose(orb);
+
+	for(obr=0; obr<100; obr++) {
+	sceDisplayWaitVblankStart();
+	}
+}
+
+void delete_opening_vag() {
+
+	int vag;
+	int vagt;
+
+	for(vag=35064; vag<135864; vag++) {
+		opening[vag] = 0;
+	}
+
+	for(vag=135944; vag<236744; vag++) {
+		opening[vag] = 0;
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("  CREATE BLANK VAG FILE IN RAM ");
+
+	for(vagt=0; vagt<110; vagt++) {
+	sceDisplayWaitVblankStart();
+	}
+}
+
+void actual_delete() {
+	int vas;
+
+	vas = sceIoOpen("flash0:/vsh/resource/opening_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(vas,opening,254344);
+	sceIoClose(vas);
+}
+
+void original_opening() {
+	int eoro;
+	int oro;
+	int qro;
+	int qrh;
+
+	qrh = 0x40;
+	for(qro=0x88F8; qro<0x212B8; qro++) {
+
+	if (qrh < 0x18A00) {
+		opening[qro] = openinga[qrh];	//check for end of shorter file
+		qrh ++;
+	}
+	}
+
+	qrh = 0x40;
+	for(qro=0x21308; qro<0x39CC8; qro++) {
+
+	if (qrh < 0x18A00) {
+		opening[qro] = openingb[qrh];	//check for end of shorter file
+		qrh ++;
+	}
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("  APPLY ORIGINAL OPENING SOUND  ");
+
+	for(eoro=0; eoro<110; eoro++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	if (test == 0) {
+	oro = sceIoOpen("flash0:/vsh/resource/opening_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	}
+	else {
+	oro = sceIoOpen("./Xflash/Dump/flash0/vsh/resource/opening_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	}
+
+	sceIoWrite(oro,opening,254344);
+	sceIoClose(oro);
+}
+
+void shit_opening() {
+	int eoso;
+	int oso;
+	int sro;
+	int srh;
+
+	srh = 0x40;
+	for(sro=0x88F8; sro<0x212B8; sro++) {
+
+	if (srh < 0xA630) {
+		opening[sro] = holyshit[srh];	//check for end of shorter file
+		srh ++;
+	}
+	}
+
+	srh = 0x40;
+	for(sro=0x21308; sro<0x39CC8; sro++) {
+
+	if (srh < 0xA630) {
+		opening[sro] = holyshit[srh];	//check for end of shorter file
+		srh ++;
+	}
+	}
+
+
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf(" APPLY OFFENSIVE OPENING SOUND  ");
+
+	for(eoso=0; eoso<110; eoso++) {
+	sceDisplayWaitVblankStart();
+	}
+
+
+	oso = sceIoOpen("flash0:/vsh/resource/opening_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(oso,opening,254344);
+	sceIoClose(oso);
+}
+
+void wrench_opening() {
+	int eowo;
+	int owo;
+	int swo;
+	int srw;
+
+	srw = 0x40;
+	for(swo=0x88F8; swo<0x212B8; swo++) {
+
+	if (srw < 0x5260) {
+		opening[swo] = wrench[srw];	//check for end of shorter file
+		srw ++;
+	}
+	}
+
+	srw = 0x40;
+	for(swo=0x21308; swo<0x39CC8; swo++) {
+
+	if (srw < 0x5260) {
+		opening[swo] = wrench[srw];	//check for end of shorter file
+		srw ++;
+	}
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf(" APPLY AIR WRENCH OPENING SOUND  ");
+
+	for(eowo=0; eowo<110; eowo++) {
+	sceDisplayWaitVblankStart();
+	}
+
+
+	owo = sceIoOpen("flash0:/vsh/resource/opening_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(owo,opening,254344);
+	sceIoClose(owo);
+}
+
+void holy_echo() {
+	int eoeo;
+	int oeo;
+	int seo;
+	int soh;
+
+	soh = 0x40;
+	for(seo=0x88F8; seo<0x212B8; seo++) {
+
+	if (soh < 0xA630) {
+		opening[seo] = holyshit[soh];	//check for end of shorter file
+		soh ++;
+	}
+	}
+
+	soh = 0x40;
+
+
+	for(seo=0x23A08; seo<0x39CC8; seo++) {  //this value will adjust echo delay
+
+
+//	for(seo=0x21308; seo<0x39CC8; seo++) {
+
+	if (soh < 0xA630) {
+		opening[seo] = holyshit[soh];	//check for end of shorter file
+		soh ++;
+	}
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("   APPLY ECHO TO OPENING SOUND  ");
+
+	for(eoeo=0; eoeo<110; eoeo++) {
+	sceDisplayWaitVblankStart();
+	}
+
+
+	oeo = sceIoOpen("flash0:/vsh/resource/opening_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(oeo,opening,254344);
+	sceIoClose(oeo);
+}
+
+void coldboot_opening() {
+
+	int opxz;
+
+	for(opxz=0; opxz<100880; opxz++) {
+		coldboot[opxz] = 0;
+	}
+
+
+	opxz = sceIoOpen("./xflash/Modified/Coldboot.vag", PSP_O_RDONLY, 0777);
+	sceIoRead(opxz,coldboot,100880);
+	sceIoClose(opxz);
+
+
+
+	int eiro;
+	int aro;
+	int uro;
+	int urh;
+
+	urh = 0x40;
+	for(aro=0x88F8; aro<0x212B8; aro++) {
+
+	if (urh < 0x18A00) {
+		opening[aro] = coldboot[urh];	//check for end of shorter file
+		urh ++;
+	}
+	}
+
+	urh = 0x40;
+	for(aro=0x21308; aro<0x39CC8; aro++) {
+
+	if (urh < 0x18A00) {
+		opening[aro] = coldboot[urh];	//check for end of shorter file
+		urh ++;
+	}
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("  APPLY EXTERNAL OPENING SOUND  ");
+
+	for(eiro=0; eiro<110; eiro++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	if (test == 0) {
+	uro = sceIoOpen("flash0:/vsh/resource/opening_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	}
+	else {
+	uro = sceIoOpen("./Xflash/Dump/flash0/vsh/resource/opening_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	}
+
+	sceIoWrite(uro,opening,254344);
+	sceIoClose(uro);
+}
+
+void coldboot_echo() {
+
+	int opxe;
+
+	for(opxe=0; opxe<100880; opxe++) {
+		coldboot[opxe] = 0;
+	}
+
+	opxe = sceIoOpen("./xflash/Modified/Coldboot.vag", PSP_O_RDONLY, 0777);
+	sceIoRead(opxe,coldboot,100880);
+	sceIoClose(opxe);
+
+	int eoee;
+	int oee;
+	int eeo;
+	int eoh;
+
+	eoh = 0x40;
+	for(eeo=0x88F8; eeo<0x212B8; eeo++) {
+
+	if (eoh < 100700) {
+		opening[eeo] = coldboot[eoh];	//check for end of shorter file
+		eoh ++;
+	}
+	}
+
+	eoh = 0x40;
+
+
+	for(eeo=0x23A08; eeo<0x39CC8; eeo++) {  //this value will adjust echo delay
+//	for(eeo=0x21308; eeo<0x39CC8; eeo++) {
+
+	if (eoh < 100700) {
+		opening[eeo] = coldboot[eoh];	//check for end of shorter file
+		eoh ++;
+	}
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf(" APPLY EXTERNAL SOUND WITH ECHO");
+
+	for(eoee=0; eoee<110; eoee++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	if (test == 0) {
+	oee = sceIoOpen("flash0:/vsh/resource/opening_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	}
+	else {
+	oee = sceIoOpen("./Xflash/Dump/flash0/vsh/resource/opening_plugin.rco", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	}
+
+	sceIoWrite(oee,opening,254344);
+	sceIoClose(oee);
+}
+
+void read_coldboot() {
+	int rcb;
+
+	rcb = sceIoOpen("./xflash/Modified/Coldboot.vag", PSP_O_RDONLY, 0777);
+	sceIoRead(rcb,coldboot,100880);
+	sceIoClose(rcb);
+}
+
+void jantoram() {
+	int janr;
+	int jak;
+	int jay;
+
+	for(jay=0; jay<6176; jay++) {
+	janram[jay] = jan[jay];
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("APPLY ORIGINAL JANUARY BACKGROUND");
+	for(janr=0; janr<110; janr++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	jak = sceIoOpen("flash0:/vsh/resource/01.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(jak,janram,6176);
+	sceIoClose(jak);
+}
+
+void febtoram() {
+	int febr;
+	int febk;
+	int feby;
+
+	for(feby=0; feby<6176; feby++) {
+	febram[feby] = feb[feby];
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("APPLY ORIGINAL FEBRUARY BACKGROUND");
+	for(febr=0; febr<110; febr++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	febk = sceIoOpen("flash0:/vsh/resource/02.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(febk,febram,6176);
+	sceIoClose(febk);
+}
+
+void martoram() {
+	int marr;
+	int mark;
+	int mary;
+
+	for(mary=0; mary<6176; mary++) {
+	marram[mary] = mar[mary];
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf(" APPLY ORIGINAL MARCH BACKGROUND");
+	for(marr=0; marr<110; marr++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	mark = sceIoOpen("flash0:/vsh/resource/03.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(mark,marram,6176);
+	sceIoClose(mark);
+}
+
+void aprtoram() {
+	int aprr;
+	int aprk;
+	int apry;
+
+	for(apry=0; apry<6176; apry++) {
+	aprram[apry] = apr[apry];
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf(" APPLY ORIGINAL APRIL BACKGROUND");
+	for(aprr=0; aprr<110; aprr++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	aprk = sceIoOpen("flash0:/vsh/resource/04.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(aprk,aprram,6176);
+	sceIoClose(aprk);
+}
+
+void maytoram() {
+	int mayr;
+	int mayk;
+	int mayy;
+
+	for(mayy=0; mayy<6176; mayy++) {
+	mayram[mayy] = may[mayy];
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("  APPLY ORIGINAL MAY BACKGROUND");
+	for(mayr=0; mayr<110; mayr++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	mayk = sceIoOpen("flash0:/vsh/resource/05.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(mayk,mayram,6176);
+	sceIoClose(mayk);
+}
+
+void juntoram() {
+	int junr;
+	int junk;
+	int juny;
+
+	for(juny=0; juny<6176; juny++) {
+	junram[juny] = jun[juny];
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("  APPLY ORIGINAL JUNE BACKGROUND");
+	for(junr=0; junr<110; junr++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	junk = sceIoOpen("flash0:/vsh/resource/06.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(junk,junram,6176);
+	sceIoClose(junk);
+}
+
+void jultoram() {
+	int julr;
+	int julk;
+	int july;
+
+	for(july=0; july<6176; july++) {
+	julram[july] = jul[july];
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf(" APPLY ORIGINAL JULY BACKGROUND");
+	for(julr=0; julr<110; julr++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	julk = sceIoOpen("flash0:/vsh/resource/07.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(julk,julram,6176);
+	sceIoClose(julk);
+}
+
+void augtoram() {
+	int augr;
+	int augk;
+	int augy;
+
+	for(augy=0; augy<6176; augy++) {
+	augram[augy] = aug[augy];
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("APPLY ORIGINAL AUGUST BACKGROUND");
+	for(augr=0; augr<110; augr++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	augk = sceIoOpen("flash0:/vsh/resource/08.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(augk,augram,6176);
+	sceIoClose(augk);
+}
+
+void septoram() {
+	int sepr;
+	int sepk;
+	int sepy;
+
+	for(sepy=0; sepy<6176; sepy++) {
+	sepram[sepy] = sep[sepy];
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("APPLY ORIGINAL SEPTEMBER BACKGROUND");
+	for(sepr=0; sepr<110; sepr++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	sepk = sceIoOpen("flash0:/vsh/resource/09.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(sepk,sepram,6176);
+	sceIoClose(sepk);
+}
+
+void octtoram() {
+	int octr;
+	int octk;
+	int octy;
+
+	for(octy=0; octy<6176; octy++) {
+	octram[octy] = oct[octy];
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("APPLY ORIGINAL OCTOBER BACKGROUND");
+	for(octr=0; octr<110; octr++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	octk = sceIoOpen("flash0:/vsh/resource/10.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(octk,octram,6176);
+	sceIoClose(octk);
+}
+
+void novtoram() {
+	int novr;
+	int novk;
+	int novy;
+
+	for(novy=0; novy<6176; novy++) {
+	novram[novy] = nov[novy];
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("APPLY ORIGINAL NOVEMBER BACKGROUND");
+	for(novr=0; novr<110; novr++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	novk = sceIoOpen("flash0:/vsh/resource/11.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(novk,novram,6176);
+	sceIoClose(novk);
+}
+
+void dectoram() {
+	int decr;
+	int deck;
+	int decy;
+
+	for(decy=0; decy<6176; decy++) {
+	decram[decy] = dec[decy];
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("APPLY ORIGINAL DECEMBER BACKGROUND");
+	for(decr=0; decr<110; decr++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	deck = sceIoOpen("flash0:/vsh/resource/12.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(deck,decram,6176);
+	sceIoClose(deck);
+}
+
+void blktoram() {
+	int blkr;
+	int blkk;
+	int blky;
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("CREATE PLAIN BLACK BITMAP FILES");
+	for(blkr=0; blkr<100; blkr++) {
+	sceDisplayWaitVblankStart();
+	}
+
+	for(blky=0; blky<6176; blky++) {
+	blkram[blky] = 0;
+	}
+
+	blkram[0] = 0x42; // create black background bitmap file
+	blkram[1] = 0x4D;
+	blkram[2] = 0x1E;
+	blkram[3] = 0x18;
+	blkram[10] = 0x36;
+	blkram[14] = 0x28;
+	blkram[18] = 0x3C;
+	blkram[22] = 0x22;
+	blkram[26] = 0x01;
+	blkram[28] = 0x18;
+
+	for(blky=0; blky<6176; blky++) {
+	janram[blky] = blkram[blky];
+	}
+	for(blky=0; blky<6176; blky++) {
+	febram[blky] = blkram[blky];
+	}
+	for(blky=0; blky<6176; blky++) {
+	marram[blky] = blkram[blky];
+	}
+	for(blky=0; blky<6176; blky++) {
+	aprram[blky] = blkram[blky];
+	}
+	for(blky=0; blky<6176; blky++) {
+	mayram[blky] = blkram[blky];
+	}
+	for(blky=0; blky<6176; blky++) {
+	junram[blky] = blkram[blky];
+	}
+	for(blky=0; blky<6176; blky++) {
+	julram[blky] = blkram[blky];
+	}
+	for(blky=0; blky<6176; blky++) {
+	augram[blky] = blkram[blky];
+	}
+	for(blky=0; blky<6176; blky++) {
+	sepram[blky] = blkram[blky];
+	}
+	for(blky=0; blky<6176; blky++) {
+	octram[blky] = blkram[blky];
+	}
+	for(blky=0; blky<6176; blky++) {
+	novram[blky] = blkram[blky];
+	}
+	for(blky=0; blky<6176; blky++) {
+	decram[blky] = blkram[blky];
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("  APPLY PLAIN BLACK BACKGROUND 1   ");
+	for(blkr=0; blkr<110; blkr++) {
+	sceDisplayWaitVblankStart();
+	}
+	blkk = sceIoOpen("flash0:/vsh/resource/01.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(blkk,janram,6176);
+	sceIoClose(blkk);
+	verify_jan();
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("  APPLY PLAIN BLACK BACKGROUND 2");
+	for(blkr=0; blkr<110; blkr++) {
+	sceDisplayWaitVblankStart();
+	}
+	blkk = sceIoOpen("flash0:/vsh/resource/02.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(blkk,febram,6176);
+	sceIoClose(blkk);
+	verify_feb();
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("  APPLY PLAIN BLACK BACKGROUND 3");
+	for(blkr=0; blkr<110; blkr++) {
+	sceDisplayWaitVblankStart();
+	}
+	blkk = sceIoOpen("flash0:/vsh/resource/03.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(blkk,marram,6176);
+	sceIoClose(blkk);
+	verify_mar();
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("  APPLY PLAIN BLACK BACKGROUND 4");
+	for(blkr=0; blkr<110; blkr++) {
+	sceDisplayWaitVblankStart();
+	}
+	blkk = sceIoOpen("flash0:/vsh/resource/04.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(blkk,aprram,6176);
+	sceIoClose(blkk);
+	verify_apr();
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("  APPLY PLAIN BLACK BACKGROUND 5");
+	for(blkr=0; blkr<110; blkr++) {
+	sceDisplayWaitVblankStart();
+	}
+	blkk = sceIoOpen("flash0:/vsh/resource/05.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(blkk,mayram,6176);
+	sceIoClose(blkk);
+	verify_may();
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("  APPLY PLAIN BLACK BACKGROUND 6");
+	for(blkr=0; blkr<110; blkr++) {
+	sceDisplayWaitVblankStart();
+	}
+	blkk = sceIoOpen("flash0:/vsh/resource/06.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(blkk,junram,6176);
+	sceIoClose(blkk);
+	verify_jun();
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("  APPLY PLAIN BLACK BACKGROUND 7");
+	for(blkr=0; blkr<110; blkr++) {
+	sceDisplayWaitVblankStart();
+	}
+	blkk = sceIoOpen("flash0:/vsh/resource/07.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(blkk,julram,6176);
+	sceIoClose(blkk);
+	verify_jul();
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("  APPLY PLAIN BLACK BACKGROUND 8");
+	for(blkr=0; blkr<110; blkr++) {
+	sceDisplayWaitVblankStart();
+	}
+	blkk = sceIoOpen("flash0:/vsh/resource/08.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(blkk,augram,6176);
+	sceIoClose(blkk);
+	verify_aug();
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("  APPLY PLAIN BLACK BACKGROUND 9");
+	for(blkr=0; blkr<110; blkr++) {
+	sceDisplayWaitVblankStart();
+	}
+	blkk = sceIoOpen("flash0:/vsh/resource/09.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(blkk,sepram,6176);
+	sceIoClose(blkk);
+	verify_sep();
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("  APPLY PLAIN BLACK BACKGROUND 10");
+	for(blkr=0; blkr<110; blkr++) {
+	sceDisplayWaitVblankStart();
+	}
+	blkk = sceIoOpen("flash0:/vsh/resource/10.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(blkk,octram,6176);
+	sceIoClose(blkk);
+	verify_oct();
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("  APPLY PLAIN BLACK BACKGROUND 11");
+	for(blkr=0; blkr<110; blkr++) {
+	sceDisplayWaitVblankStart();
+	}
+	blkk = sceIoOpen("flash0:/vsh/resource/11.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(blkk,novram,6176);
+	sceIoClose(blkk);
+	verify_nov();
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("  APPLY PLAIN BLACK BACKGROUND 12");
+	for(blkr=0; blkr<110; blkr++) {
+	sceDisplayWaitVblankStart();
+	}
+	blkk = sceIoOpen("flash0:/vsh/resource/12.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(blkk,decram,6176);
+	sceIoClose(blkk);
+	verify_dec();
+}
+
+void verify_jan() {
+	int janvf;
+	int fxjan;
+	int janpp;
+
+	fxjan = sceIoOpen("flash0:/vsh/resource/01.bmp", PSP_O_RDONLY, 0777);
+	sceIoRead(fxjan,vjanram,6176);
+	sceIoClose(fxjan);
+
+	verify = 0;
+	for(janpp=0; janpp<6176; janpp++) {
+		if (janram[janpp] != vjanram[janpp]) {
+		verify = 1;
+		}
+	}
+
+	if (verify == 1) {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY FAILED! ");
+	fails ++; // increment value for number of verify fails.
+
+	if (fails < 3) {
+		for(ixt=0; ixt<170; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		fdo = sceIoOpen("flash0:/vsh/resource/01.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		sceIoWrite(fdo,janram,6176);
+		sceIoClose(fdo);
+		pspDebugScreenSetXY(18, 28);
+		printf("          AUTO RETRY           ");
+		for(ixt=0; ixt<110; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		verify_jan();
+	}
+	}
+
+	else {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY PASSED ");
+	}
+
+	for(janvf=0; janvf<110; janvf++) {
+	sceDisplayWaitVblankStart();
+	}
+	exist = 1;
+}
+
+void verify_feb() {
+	int febvf;
+	int fxfeb;
+	int febpp;
+
+	fxfeb = sceIoOpen("flash0:/vsh/resource/02.bmp", PSP_O_RDONLY, 0777);
+	sceIoRead(fxfeb,vfebram,6176);
+	sceIoClose(fxfeb);
+
+	verify = 0;
+	for(febpp=0; febpp<6176; febpp++) {
+		if (febram[febpp] != vfebram[febpp]) {
+		verify = 1;
+		}
+	}
+
+	if (verify == 1) {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY FAILED! ");
+	fails ++; // increment value for number of verify fails.
+
+	if (fails < 3) {
+		for(ixt=0; ixt<170; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		fdo = sceIoOpen("flash0:/vsh/resource/02.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		sceIoWrite(fdo,febram,6176);
+		sceIoClose(fdo);
+		pspDebugScreenSetXY(18, 28);
+		printf("          AUTO RETRY           ");
+		for(ixt=0; ixt<110; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		verify_feb();
+	}
+	}
+
+	else {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY PASSED ");
+	}
+
+	for(febvf=0; febvf<110; febvf++) {
+	sceDisplayWaitVblankStart();
+	}
+	exist = 1;
+}
+
+void verify_mar() {
+	int marvf;
+	int fxmar;
+	int marpp;
+
+	fxmar = sceIoOpen("flash0:/vsh/resource/03.bmp", PSP_O_RDONLY, 0777);
+	sceIoRead(fxmar,vmarram,6176);
+	sceIoClose(fxmar);
+
+	verify = 0;
+	for(marpp=0; marpp<6176; marpp++) {
+		if (marram[marpp] != vmarram[marpp]) {
+		verify = 1;
+		}
+	}
+
+	if (verify == 1) {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY FAILED! ");
+	fails ++; // increment value for number of verify fails.
+
+	if (fails < 3) {
+		for(ixt=0; ixt<170; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		fdo = sceIoOpen("flash0:/vsh/resource/03.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		sceIoWrite(fdo,marram,6176);
+		sceIoClose(fdo);
+		pspDebugScreenSetXY(18, 28);
+		printf("          AUTO RETRY           ");
+		for(ixt=0; ixt<110; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		verify_mar();
+	}
+	}
+
+	else {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY PASSED ");
+	}
+
+	for(marvf=0; marvf<110; marvf++) {
+	sceDisplayWaitVblankStart();
+	}
+	exist = 1;
+}
+
+void verify_apr() {
+	int aprvf;
+	int fxapr;
+	int aprpp;
+
+	fxapr = sceIoOpen("flash0:/vsh/resource/04.bmp", PSP_O_RDONLY, 0777);
+	sceIoRead(fxapr,vaprram,6176);
+	sceIoClose(fxapr);
+
+	verify = 0;
+	for(aprpp=0; aprpp<6176; aprpp++) {
+		if (aprram[aprpp] != vaprram[aprpp]) {
+		verify = 1;
+		}
+	}
+
+	if (verify == 1) {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY FAILED! ");
+	fails ++; // increment value for number of verify fails.
+
+	if (fails < 3) {
+		for(ixt=0; ixt<170; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		fdo = sceIoOpen("flash0:/vsh/resource/04.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		sceIoWrite(fdo,aprram,6176);
+		sceIoClose(fdo);
+		pspDebugScreenSetXY(18, 28);
+		printf("          AUTO RETRY           ");
+		for(ixt=0; ixt<110; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		verify_apr();
+	}
+	}
+
+	else {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY PASSED ");
+	}
+
+	for(aprvf=0; aprvf<110; aprvf++) {
+	sceDisplayWaitVblankStart();
+	}
+	exist = 1;
+}
+
+void verify_may() {
+	int mayvf;
+	int fxmay;
+	int maypp;
+
+	fxmay = sceIoOpen("flash0:/vsh/resource/05.bmp", PSP_O_RDONLY, 0777);
+	sceIoRead(fxmay,vmayram,6176);
+	sceIoClose(fxmay);
+
+	verify = 0;
+	for(maypp=0; maypp<6176; maypp++) {
+		if (mayram[maypp] != vmayram[maypp]) {
+		verify = 1;
+		}
+	}
+
+	if (verify == 1) {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY FAILED! ");
+	fails ++; // increment value for number of verify fails.
+
+	if (fails < 3) {
+		for(ixt=0; ixt<170; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		fdo = sceIoOpen("flash0:/vsh/resource/05.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		sceIoWrite(fdo,mayram,6176);
+		sceIoClose(fdo);
+		pspDebugScreenSetXY(18, 28);
+		printf("          AUTO RETRY           ");
+		for(ixt=0; ixt<110; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		verify_may();
+	}
+	}
+
+	else {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY PASSED ");
+	}
+
+	for(mayvf=0; mayvf<110; mayvf++) {
+	sceDisplayWaitVblankStart();
+	}
+	exist = 1;
+}
+
+void verify_jun() {
+	int junvf;
+	int fxjun;
+	int junpp;
+
+	fxjun = sceIoOpen("flash0:/vsh/resource/06.bmp", PSP_O_RDONLY, 0777);
+	sceIoRead(fxjun,vjunram,6176);
+	sceIoClose(fxjun);
+
+	verify = 0;
+	for(junpp=0; junpp<6176; junpp++) {
+		if (junram[junpp] != vjunram[junpp]) {
+		verify = 1;
+		}
+	}
+
+	if (verify == 1) {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY FAILED! ");
+	fails ++; // increment value for number of verify fails.
+
+	if (fails < 3) {
+		for(ixt=0; ixt<170; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		fdo = sceIoOpen("flash0:/vsh/resource/06.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		sceIoWrite(fdo,junram,6176);
+		sceIoClose(fdo);
+		pspDebugScreenSetXY(18, 28);
+		printf("          AUTO RETRY           ");
+		for(ixt=0; ixt<110; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		verify_jun();
+	}
+	}
+
+	else {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY PASSED ");
+	}
+
+	for(junvf=0; junvf<110; junvf++) {
+	sceDisplayWaitVblankStart();
+	}
+	exist = 1;
+}
+
+void verify_jul() {
+	int julvf;
+	int fxjul;
+	int julpp;
+
+	fxjul = sceIoOpen("flash0:/vsh/resource/07.bmp", PSP_O_RDONLY, 0777);
+	sceIoRead(fxjul,vjulram,6176);
+	sceIoClose(fxjul);
+
+	verify = 0;
+	for(julpp=0; julpp<6176; julpp++) {
+		if (julram[julpp] != vjulram[julpp]) {
+		verify = 1;
+		}
+	}
+
+	if (verify == 1) {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY FAILED! ");
+	fails ++; // increment value for number of verify fails.
+
+	if (fails < 3) {
+		for(ixt=0; ixt<170; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		fdo = sceIoOpen("flash0:/vsh/resource/07.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		sceIoWrite(fdo,julram,6176);
+		sceIoClose(fdo);
+		pspDebugScreenSetXY(18, 28);
+		printf("          AUTO RETRY           ");
+		for(ixt=0; ixt<110; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		verify_jul();
+	}
+	}
+
+	else {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY PASSED ");
+	}
+
+	for(julvf=0; julvf<110; julvf++) {
+	sceDisplayWaitVblankStart();
+	}
+	exist = 1;
+}
+
+void verify_aug() {
+	int augvf;
+	int fxaug;
+	int augpp;
+
+	fxaug = sceIoOpen("flash0:/vsh/resource/08.bmp", PSP_O_RDONLY, 0777);
+	sceIoRead(fxaug,vaugram,6176);
+	sceIoClose(fxaug);
+
+	verify = 0;
+	for(augpp=0; augpp<6176; augpp++) {
+		if (augram[augpp] != vaugram[augpp]) {
+		verify = 1;
+		}
+	}
+
+	if (verify == 1) {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY FAILED! ");
+	fails ++; // increment value for number of verify fails.
+
+	if (fails < 3) {
+		for(ixt=0; ixt<170; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		fdo = sceIoOpen("flash0:/vsh/resource/08.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		sceIoWrite(fdo,augram,6176);
+		sceIoClose(fdo);
+		pspDebugScreenSetXY(18, 28);
+		printf("          AUTO RETRY           ");
+		for(ixt=0; ixt<110; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		verify_aug();
+	}
+	}
+
+	else {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY PASSED ");
+	}
+
+	for(augvf=0; augvf<110; augvf++) {
+	sceDisplayWaitVblankStart();
+	}
+	exist = 1;
+}
+
+void verify_sep() {
+	int sepvf;
+	int fxsep;
+	int seppp;
+
+	fxsep = sceIoOpen("flash0:/vsh/resource/09.bmp", PSP_O_RDONLY, 0777);
+	sceIoRead(fxsep,vsepram,6176);
+	sceIoClose(fxsep);
+
+	verify = 0;
+	for(seppp=0; seppp<6176; seppp++) {
+		if (sepram[seppp] != vsepram[seppp]) {
+		verify = 1;
+		}
+	}
+
+	if (verify == 1) {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY FAILED! ");
+	fails ++; // increment value for number of verify fails.
+
+	if (fails < 3) {
+		for(ixt=0; ixt<170; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		fdo = sceIoOpen("flash0:/vsh/resource/09.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		sceIoWrite(fdo,sepram,6176);
+		sceIoClose(fdo);
+		pspDebugScreenSetXY(18, 28);
+		printf("          AUTO RETRY           ");
+		for(ixt=0; ixt<110; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		verify_sep();
+	}
+	}
+
+	else {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY PASSED ");
+	}
+
+	for(sepvf=0; sepvf<110; sepvf++) {
+	sceDisplayWaitVblankStart();
+	}
+	exist = 1;
+}
+
+void verify_oct() {
+	int octvf;
+	int fxoct;
+	int octpp;
+
+	fxoct = sceIoOpen("flash0:/vsh/resource/10.bmp", PSP_O_RDONLY, 0777);
+	sceIoRead(fxoct,voctram,6176);
+	sceIoClose(fxoct);
+
+	verify = 0;
+	for(octpp=0; octpp<6176; octpp++) {
+		if (octram[octpp] != voctram[octpp]) {
+		verify = 1;
+		}
+	}
+
+	if (verify == 1) {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY FAILED! ");
+	fails ++; // increment value for number of verify fails.
+
+	if (fails < 3) {
+		for(ixt=0; ixt<170; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		fdo = sceIoOpen("flash0:/vsh/resource/10.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		sceIoWrite(fdo,octram,6176);
+		sceIoClose(fdo);
+		pspDebugScreenSetXY(18, 28);
+		printf("          AUTO RETRY           ");
+		for(ixt=0; ixt<110; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		verify_oct();
+	}
+	}
+
+	else {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY PASSED ");
+	}
+
+	for(octvf=0; octvf<110; octvf++) {
+	sceDisplayWaitVblankStart();
+	}
+	exist = 1;
+}
+
+void verify_nov() {
+	int novvf;
+	int fxnov;
+	int novpp;
+
+	fxnov = sceIoOpen("flash0:/vsh/resource/11.bmp", PSP_O_RDONLY, 0777);
+	sceIoRead(fxnov,vnovram,6176);
+	sceIoClose(fxnov);
+
+	verify = 0;
+	for(novpp=0; novpp<6176; novpp++) {
+		if (novram[novpp] != vnovram[novpp]) {
+		verify = 1;
+		}
+	}
+
+	if (verify == 1) {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY FAILED! ");
+	fails ++; // increment value for number of verify fails.
+
+	if (fails < 3) {
+		for(ixt=0; ixt<170; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		fdo = sceIoOpen("flash0:/vsh/resource/11.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		sceIoWrite(fdo,novram,6176);
+		sceIoClose(fdo);
+		pspDebugScreenSetXY(18, 28);
+		printf("          AUTO RETRY           ");
+		for(ixt=0; ixt<110; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		verify_nov();
+	}
+	}
+
+	else {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY PASSED ");
+	}
+
+	for(novvf=0; novvf<110; novvf++) {
+	sceDisplayWaitVblankStart();
+	}
+	exist = 1;
+}
+
+void verify_dec() {
+	int decvf;
+	int fxdec;
+	int decpp;
+
+	fxdec = sceIoOpen("flash0:/vsh/resource/12.bmp", PSP_O_RDONLY, 0777);
+	sceIoRead(fxdec,vdecram,6176);
+	sceIoClose(fxdec);
+
+	verify = 0;
+	for(decpp=0; decpp<6176; decpp++) {
+		if (decram[decpp] != vdecram[decpp]) {
+		verify = 1;
+		}
+	}
+
+	if (verify == 1) {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY FAILED! ");
+	fails ++; // increment value for number of verify fails.
+
+	if (fails < 3) {
+		for(ixt=0; ixt<170; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		fdo = sceIoOpen("flash0:/vsh/resource/12.bmp", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		sceIoWrite(fdo,decram,6176);
+		sceIoClose(fdo);
+		pspDebugScreenSetXY(18, 28);
+		printf("          AUTO RETRY           ");
+		for(ixt=0; ixt<110; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		verify_dec();
+	}
+	}
+
+	else {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY PASSED ");
+	}
+
+	for(decvf=0; decvf<110; decvf++) {
+	sceDisplayWaitVblankStart();
+	}
+	exist = 1;
+}
+
+void blank_pmf() {
+	int bpmfr;
+	int bpmfk;
+	int bpmfy;
+
+	for(bpmfy=0; bpmfy<18; bpmfy++) {
+	blankpmf[bpmfy] = 0;
+	}
+
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("  APPLY BLANK GAME BOOT MOVIE");
+	for(bpmfr=0; bpmfr<100; bpmfr++) {
+	sceDisplayWaitVblankStart();
+	}
+	bpmfk = sceIoOpen("flash0:/vsh/resource/gameboot.pmf", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	sceIoWrite(bpmfk,blankpmf,0);
+	sceIoClose(bpmfk);
+	verify_blankpmf();
+}
+
+void verify_blankpmf() {
+	int pmfvf;
+
+	int fdv;
+	fdv = sceIoOpen("flash0:/vsh/resource/gameboot.pmf", PSP_O_RDONLY, 0);
+	if(fdv < 0) {
+		exist = 0;
+        }
+	else {
+                exist = 1;
+        }
+	sceIoClose(fdv);
+
+	verify = 0;
+	if (exist == 0) {
+	verify = 1;
+	}
+
+	if (verify == 1) {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY FAILED! ");
+	fails ++; // increment value for number of verify fails.
+
+	if (fails < 3) {
+		for(ixt=0; ixt<170; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		fdo = sceIoOpen("flash0:/vsh/resource/gameboot.pmf", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+		sceIoWrite(fdo,blankpmf,0);
+		sceIoClose(fdo);
+		pspDebugScreenSetXY(18, 28);
+		printf("          AUTO RETRY           ");
+		for(ixt=0; ixt<110; ixt++) {
+		sceDisplayWaitVblankStart();
+		}
+		verify_blankpmf();
+	}
+	}
+
+	else {
+	print_blankfooter();
+	pspDebugScreenSetTextColor(colord);
+	pspDebugScreenSetXY(18, 28);
+	printf("         VERIFY PASSED ");
+	}
+
+	for(pmfvf=0; pmfvf<110; pmfvf++) {
+	sceDisplayWaitVblankStart();
+	}
+	exist = 1;
+}
+
+void print_starline() {
+	int strx = 5;
+	int stari;
+
+if (mcnt > 245) {
+if (mcnt < 265) {
+move_starscreen();
+}
+}
+if (mcnt > 295) {
+if (mcnt < 309) {
+movx_starscreen();
+}
+}
+if (mcnt > 310) {
+if (mcnt < 329) {
+move_starscreen();
+}
+}
+if (mcnt > 330) {
+if (mcnt < 339) {
+movx_starscreen();
+}
+}
+if (mcnt > 340) {
+if (mcnt < 349) {
+move_starscreen();
+}
+}
+if (mcnt > 368) {
+if (mcnt < 379) {
+movx_starscreen();
+}
+}
+if (mcnt > 380) {
+if (mcnt < 410) {
+move_starscreen();
+}
+}
+if (mcnt > 450) {
+if (mcnt < 464) {
+movx_starscreen();
+}
+}
+
+	pspDebugScreenSetTextColor(0x00EFDDCA);
+
+	stra = stra - 60;
+	pspDebugScreenSetXY(strx, starda);
+	printf(" ");
+	for(stari=0; stari<56; stari++) {
+	stbuff = (stars[stra] ^ 0x3F);	//decrypt simple xor encrypted cedit
+	printf("%c",stbuff);
+	stra++;
+	if (stra < 40) {
+	stra = 463;
+	}
+	}
+
+	strb = strb - 57;
+	pspDebugScreenSetXY(strx, stardb);
+	printf(" ");
+	for(stari=0; stari<56; stari++) {
+	stbuff = (stars[strb] ^ 0x3F);	//decrypt simple xor encrypted cedit
+	printf("%c",stbuff);
+	strb++;
+	if (strb < 40) {
+	strb = 477;
+	}
+	}
+
+	strc = strc - 58;
+	pspDebugScreenSetXY(strx, stardc);
+	printf(" ");
+	for(stari=0; stari<56; stari++) {
+	stbuff = (stars[strc] ^ 0x3F);	//decrypt simple xor encrypted cedit
+	printf("%c",stbuff);
+	strc++;
+	if (strc < 40) {
+	strc = 481;
+	}
+	}
+
+	strd = strd - 59;
+	pspDebugScreenSetXY(strx, stardd);
+	printf(" ");
+	for(stari=0; stari<56; stari++) {
+	stbuff = (stars[strd] ^ 0x3F);	//decrypt simple xor encrypted cedit
+	printf("%c",stbuff);
+	strd++;
+	if (strd < 40) {
+	strd = 492;
+	}
+	}
+
+	stre = stre - 58;
+	pspDebugScreenSetXY(strx, starde);
+	printf(" ");
+	for(stari=0; stari<56; stari++) {
+	stbuff = (stars[stre] ^ 0x3F);	//decrypt simple xor encrypted cedit
+	printf("%c",stbuff);
+	stre++;
+	if (stre < 40) {
+	stre = 478;
+	}
+	}
+
+	strf = strf - 59;
+	pspDebugScreenSetXY(strx, stardf);
+	printf(" ");
+	for(stari=0; stari<56; stari++) {
+	stbuff = (stars[strf] ^ 0x3F);	//decrypt simple xor encrypted cedit
+	printf("%c",stbuff);
+	strf++;
+	if (strf < 40) {
+	strf = 474;
+	}
+	}
+
+	strg = strg - 57;
+	pspDebugScreenSetXY(strx, stardg);
+	printf(" ");
+	for(stari=0; stari<56; stari++) {
+	stbuff = (stars[strg] ^ 0x3F);	//decrypt simple xor encrypted cedit
+	printf("%c",stbuff);
+	strg++;
+	if (strg < 40) {
+	strg = 488;
+	}
+	}
+
+	strh = strh - 59;
+	pspDebugScreenSetXY(strx, stardh);
+	printf(" ");
+	for(stari=0; stari<56; stari++) {
+	stbuff = (stars[strh] ^ 0x3F);	//decrypt simple xor encrypted cedit
+	printf("%c",stbuff);
+	strh++;
+	if (strh < 40) {
+	strh = 478;
+	}
+	}
+
+	stri = stri - 58;
+	pspDebugScreenSetXY(strx, stardi);
+	printf(" ");
+	for(stari=0; stari<56; stari++) {
+	stbuff = (stars[stri] ^ 0x3F);	//decrypt simple xor encrypted cedit
+	printf("%c",stbuff);
+	stri++;
+	if (stri < 40) {
+	stri = 482;
+	}
+	}
+
+	strj = strj - 57;
+	pspDebugScreenSetXY(strx, stardj);
+	printf(" ");
+	for(stari=0; stari<56; stari++) {
+	stbuff = (stars[strj] ^ 0x3F);	//decrypt simple xor encrypted cedit
+	printf("%c",stbuff);
+	strj++;
+	if (strj < 40) {
+	strj = 470;
+	}
+	}
+
+	strk = strk - 59;
+	pspDebugScreenSetXY(strx, stardk);
+	printf(" ");
+	for(stari=0; stari<56; stari++) {
+	stbuff = (stars[strk] ^ 0x3F);	//decrypt simple xor encrypted cedit
+	printf("%c",stbuff);
+	strk++;
+	if (strk < 40) {
+	strk = 475;
+	}
+	}
+
+	strl = strl - 58;
+	pspDebugScreenSetXY(strx, stardl);
+	printf(" ");
+	for(stari=0; stari<56; stari++) {
+	stbuff = (stars[strl] ^ 0x3F);	//decrypt simple xor encrypted cedit
+	printf("%c",stbuff);
+	strl++;
+	if (strl < 40) {
+	strl = 495;
+	}
+	}
+
+	strm = strm - 59;
+	pspDebugScreenSetXY(strx, stardm);
+	printf(" ");
+	for(stari=0; stari<56; stari++) {
+	stbuff = (stars[strm] ^ 0x3F);	//decrypt simple xor encrypted cedit
+	printf("%c",stbuff);
+	strm++;
+	if (strm < 40) {
+	strm = 485;
+	}
+	}
+
+	strn = strn - 58;
+	pspDebugScreenSetXY(strx, stardn);
+	printf(" ");
+	for(stari=0; stari<56; stari++) {
+	stbuff = (stars[strn] ^ 0x3F);	//decrypt simple xor encrypted cedit
+	printf("%c",stbuff);
+	strn++;
+	if (strn < 40) {
+	strn = 490;
+	}
+	}
+
+	stro = stro - 60;
+	pspDebugScreenSetXY(strx, stardo);
+	printf(" ");
+	for(stari=0; stari<56; stari++) {
+	stbuff = (stars[stro] ^ 0x3F);	//decrypt simple xor encrypted cedit
+	printf("%c",stbuff);
+	stro++;
+	if (stro < 40) {
+	stro = 480;
+	}
+	}
+}
+
+void move_starscreen() {
+starbb = stardo;
+stardo = stardn;
+stardn = stardm;
+stardm = stardl;
+stardl = stardk;
+stardk = stardj;
+stardj = stardi;
+stardi = stardh;
+stardh = stardg;
+stardg = stardf;
+stardf = starde;
+starde = stardd;
+stardd = stardc;
+stardc = stardb;
+stardb = starda;
+starda = starbb;
+}
+
+void movx_starscreen() {
+starbb = starda;
+starda = stardb;
+stardb = stardc;
+stardc = stardd;
+stardd = starde;
+starde = stardf;
+stardf = stardg;
+stardg = stardh;
+stardh = stardi;
+stardi = stardj;
+stardj = stardk;
+stardk = stardl;
+stardl = stardm;
+stardm = stardn;
+stardn = stardo;
+stardo = starbb;
+}
+
+void check_music() {
+	int musac;
+	musac = sceIoOpen("./xflash/Xflash/sndcx.XF", PSP_O_RDONLY, 0777);
+	sceIoRead(musac,gbram,0x133);
+	sceIoClose(musac);
+}
+
+void check_samplea() {
+	sampls = sceIoOpen("./xflash/Xflash/sndx.XF", PSP_O_RDONLY, 0777);
+	sceIoRead(sampls,gbram,0x133);
+	sceIoClose(sampls);
+}
+
+void check_sampleb() {
+	sampls = sceIoOpen("./xflash/Xflash/sndy.XF", PSP_O_RDONLY, 0777);
+	sceIoRead(sampls,gbram,0x133);
+	sceIoClose(sampls);
+}
+
+void check_samplec() {
+	sampls = sceIoOpen("./xflash/Xflash/sndcr.XF", PSP_O_RDONLY, 0777);
+	sceIoRead(sampls,gbram,0x133);
+	sceIoClose(sampls);
+}
+
+void check_sampled() {
+	sampls = sceIoOpen("./xflash/Xflash/sndfb.XF", PSP_O_RDONLY, 0777);
+	sceIoRead(sampls,gbram,0x133);
+	sceIoClose(sampls);
+}
+
+void check_samplee() {
+	sampls = sceIoOpen("./xflash/Xflash/sndci.XF", PSP_O_RDONLY, 0777);
+	sceIoRead(sampls,gbram,0x133);
+	sceIoClose(sampls);
+}
+
+void check_samplef() {
+	sampls = sceIoOpen("./xflash/Xflash/sndch.XF", PSP_O_RDONLY, 0777);
+	sceIoRead(sampls,gbram,0x133);
+	sceIoClose(sampls);
+}
+
+void boot_samples() {
+ 	pspDebugScreenInit();
+	pspDebugScreenSetTextColor(0x00EFDDCA);
+	pspDebugScreenSetBackColor(0x00880000); // Blue for error screen
+	pspDebugScreenSetXY(0, 5);
+	printf("\n                                                           ");
+	printf("\n             X-FLASH HAS DETECTED AN INVALID OR MISSING    ");
+	printf("\n                        SOUND FILE  'sndxx.XF'             ");
+	printf("\n            THIS VERSION IS TESTED WITH THE FILE PRESENT   ");
+	printf("\n               YOU MUST HAVE THE FILE PRESENT TO START     ");
+	just_boot();
+}
+
+void boot_music() {
+ 	pspDebugScreenInit();
+	pspDebugScreenSetTextColor(0x00EFDDCA);
+	pspDebugScreenSetBackColor(0x00880000); // Blue for error screen
+	pspDebugScreenSetXY(0, 5);
+	printf("\n                                                           ");
+	printf("\n             X-FLASH HAS DETECTED AN INVALID OR MISSING    ");
+	printf("\n                        MUSIC FILE  'sndcx.XF'             ");
+	printf("\n            THIS VERSION IS TESTED WITH THE FILE PRESENT   ");
+	printf("\n               YOU MUST HAVE THE FILE PRESENT TO START     ");
+	just_boot();
+}
+
+void boot_vag() {
+ 	pspDebugScreenInit();
+	pspDebugScreenSetTextColor(0x00EFDDCA);
+	pspDebugScreenSetBackColor(0x00880000); // Blue for error screen
+	pspDebugScreenSetXY(0, 5);
+	printf("\n                                                           ");
+	printf("\n             X-FLASH HAS DETECTED AN INVALID OR MISSING    ");
+	printf("\n              VAG FILE  (Xflash/Modified/Coldboot.vag)     ");
+	printf("\n             OR SOURCE FILE WAS NOT NAMED 'Coldboot.wav'   ");
+	printf("\n              YOU MUST HAVE A VAG FILE PRESENT TO START    ");
+	just_boot();
+}
+
+void boot_upd() {
+ 	pspDebugScreenInit();
+	pspDebugScreenSetTextColor(0x00EFDDCA);
+	pspDebugScreenSetBackColor(0x00880000); // Blue for error screen
+	pspDebugScreenSetXY(0, 5);
+	printf("\n                                                           ");
+	printf("\n            YOU MUST USE THE PREVIOUS VERSION OF X-FLASH   ");
+	printf("\n            TO RESTORE NETWORK UPDATE ICON FUNCTIONALITY   ");
+	printf("\n             OTHERWISE THIS VERSION WILL NOT BE ABLE TO    ");
+	printf("\n                RESTORE NETWORK UPDATE FUNCTIONALITY       ");
+	just_boot();
+}
+
+void boot_ltn() {
+ 	pspDebugScreenInit();
+	pspDebugScreenSetTextColor(0x00EFDDCA);
+	pspDebugScreenSetBackColor(0x00880000); // Blue for error screen
+	pspDebugScreenSetXY(0, 5);
+	printf("\n                                                           ");
+	printf("\n           YOU MUST ONLY USE VALID PGF FONTS WITH X-FLASH  ");
+	printf("\n            ANY NEW FONTS YOU INTRODUCE SHOULD BE TESTED   ");
+	printf("\n                WITH THE AID OF A FIRMWARE LAUNCHER        ");
+	printf("\n          X-FLASH HAS DETECTED AN INVALID OR MISSING FONT  ");
+	just_boot();
+}
+
+void boot_bmp() {
+ 	pspDebugScreenInit();
+	pspDebugScreenSetTextColor(0x00EFDDCA);
+	pspDebugScreenSetBackColor(0x00880000); // Blue for error screen
+	pspDebugScreenSetXY(0, 5);
+	printf("\n                                                           ");
+	printf("\n         YOU MUST ONLY USE VALID BACKGROUNDS WITH X-FLASH  ");
+	printf("\n        ANY NEW BACKGROUNDS YOU INTRODUCE SHOULD BE TESTED ");
+	printf("\n                WITH THE AID OF A FIRMWARE LAUNCHER          ");
+	printf("\n   X-FLASH HAS DETECTED AN INVALID OR MISSING BACKGROUND FILE");
+	just_boot();
+}
+
+void print_boot() {
+	int bs;
+ 	pspDebugScreenInit();
+	pspDebugScreenSetTextColor(0x00EFDDCA);
+	pspDebugScreenSetBackColor(0x00880000); // Blue for error screen
+	pspDebugScreenSetXY(0, 7);
+	printf("\n                                                       ");
+	printf("\n                                                       ");
+	printf("\n               .-'\\                                   ");
+	printf("\n            .-'  `/\\                                  ");
+	printf("\n         .-'      `/\\                                 ");
+	printf("\n         \\         `/\\    X-FLASH IS FOR VERSION     ");
+	printf("\n          \\         `/\\   1.50 FIRMWARE PSPS ONLY.   ");
+	printf("\n           \\    _-   `/\\       _.--.                 ");
+	printf("\n            \\    _-   `/`-..--\\     )                ");
+	printf("\n             \\    _-   `,','  /    ,')                ");
+	printf("\n              `-_   -   ` -- ~   ,','                  ");
+	printf("\n               `-              ,','                    ");
+	printf("\n                \\,--.    ____==-~                     ");
+ 	printf("\n                 \\   \\_-~\\                          ");
+	printf("\n                  `_-~_.-' YOUR PSP GETS THE BOOT!     ");
+	printf("\n                   \\-~            SEE YA!   :D        ");
+	printf("\n                                                       ");
+	printf("\n                                                       ");
+
+	for(bs=0; bs<999; bs++) {
+	sceDisplayWaitVblankStart();
+	}
+	for(bs=0; bs<999; bs++) {
+	sceDisplayWaitVblankStart();
+	}
+}
+
+void just_boot() {
+	int xmp;
+	printf("\n                                                           ");
+	printf("\n                   .-'\\                                   ");
+	printf("\n                .-'  `/\\                                  ");
+	printf("\n             .-'      `/\\                                 ");
+	printf("\n             \\         `/\\                               ");
+	printf("\n              \\         `/\\                              ");
+	printf("\n               \\    _-   `/\\       _.--.                 ");
+	printf("\n                \\    _-   `/`-..--\\     )                ");
+	printf("\n                 \\    _-   `,','  /    ,')                ");
+	printf("\n                  `-_   -   ` -- ~   ,','                  ");
+	printf("\n                   `-              ,','                    ");
+	printf("\n                    \\,--.    ____==-~                     ");
+ 	printf("\n                     \\   \\_-~\\                          ");
+	printf("\n                      `_-~_.-'     YOU GET THE BOOT!       ");
+	printf("\n                       \\-~            SEE YA!   :D        ");
+	printf("\n                                                           ");
+	printf("\n                                                           ");
+
+	for(xmp=0; xmp<999; xmp++) {
+	sceDisplayWaitVblankStart();
+	}
+	for(xmp=0; xmp<999; xmp++) {
+	sceDisplayWaitVblankStart();
+	}
+}
+
+
